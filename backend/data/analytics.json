@@ -1,0 +1,154 @@
+{
+  "dashboardViews": 6,
+  "contentSaves": 0,
+  "settingsSaves": 2,
+  "formSubmissions": 0,
+  "teamChanges": 0,
+  "authLogins": 3,
+  "events": [
+    {
+      "id": "evt_df9610fb00dacb428112",
+      "type": "settings-save",
+      "label": "Theme settings saved",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-10T16:07:12.747Z"
+    },
+    {
+      "id": "evt_bb73d2b08f9d5e6449ed",
+      "type": "settings-save",
+      "label": "Theme settings saved",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-10T16:06:53.336Z"
+    },
+    {
+      "id": "evt_ba78ef8848a5c2160a6e",
+      "type": "auth-login",
+      "label": "Primary Admin signed in",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-10T16:03:33.676Z"
+    },
+    {
+      "id": "evt_076f81c51fdf35f9fbf3",
+      "type": "dashboard-view",
+      "label": "Dashboard opened",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-10T16:00:19.846Z"
+    },
+    {
+      "id": "evt_871ea4b25ca1056c96e3",
+      "type": "dashboard-view",
+      "label": "Dashboard opened",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-10T16:00:02.791Z"
+    },
+    {
+      "id": "evt_5050687b995a94b5856b",
+      "type": "dashboard-view",
+      "label": "Dashboard opened",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-10T15:55:13.219Z"
+    },
+    {
+      "id": "evt_c6166eac505040be9261",
+      "type": "auth-login",
+      "label": "Primary Admin signed in",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-10T15:55:13.143Z"
+    },
+    {
+      "id": "evt_bb6681d71cb231c901ba",
+      "type": "dashboard-view",
+      "label": "Dashboard opened",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-10T15:49:54.281Z"
+    },
+    {
+      "id": "evt_8ecb3001ba8ecac77550",
+      "type": "dashboard-view",
+      "label": "Dashboard opened",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-10T15:49:49.104Z"
+    },
+    {
+      "id": "evt_5c3e04404d9cbea6d484",
+      "type": "dashboard-view",
+      "label": "Dashboard opened",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-10T15:45:26.651Z"
+    },
+    {
+      "id": "evt_80dc99c3f7597606a42d",
+      "type": "auth-login",
+      "label": "Primary Admin signed in",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-10T15:45:26.573Z"
+    }
+  ],
+  "updatedAt": "2026-07-10T16:07:12.747Z"
+}
