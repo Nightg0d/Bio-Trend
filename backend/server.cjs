@@ -657,6 +657,40 @@ async function handleApi(request, response, url) {
     return;
   }
 
+  if (request.method === "DELETE" && url.pathname === "/api/media") {
+    const context = await requireAuth(request, response);
+    if (!context) return;
+
+    const body = await parseBody(request);
+    const assetPath = String(body.path || "");
+
+    // Only allow deleting files we actually saved to /uploads — never the
+    // bundled /assets/* defaults shipped with the site.
+    if (!assetPath.startsWith("/uploads/") || assetPath.includes("..")) {
+      sendJson(response, 400, { error: "Only uploaded assets can be deleted" });
+      return;
+    }
+
+    const targetPath = path.join(PUBLIC_DIR, assetPath);
+    try {
+      await fs.unlink(targetPath);
+    } catch (err) {
+      if (err.code !== "ENOENT") {
+        sendJson(response, 500, { error: "Could not delete file" });
+        return;
+      }
+    }
+
+    await recordActivity(
+      "media-delete",
+      `Media deleted: ${assetPath}`,
+      { path: assetPath },
+      context.user
+    );
+    sendJson(response, 200, { ok: true });
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/analytics/event") {
     const context = await requireAuth(request, response);
     if (!context) return;

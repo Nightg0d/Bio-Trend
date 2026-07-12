@@ -1,11 +1,234 @@
 {
   "dashboardViews": 6,
-  "contentSaves": 0,
-  "settingsSaves": 2,
-  "formSubmissions": 0,
+  "contentSaves": 2,
+  "settingsSaves": 7,
+  "formSubmissions": 7,
   "teamChanges": 0,
-  "authLogins": 3,
+  "authLogins": 6,
   "events": [
+    {
+      "id": "evt_54cc059fe8f6782c4048",
+      "type": "auth-login",
+      "label": "Primary Admin signed in",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-12T20:24:29.973Z"
+    },
+    {
+      "id": "evt_a2e465b80eb34886fab8",
+      "type": "settings-save",
+      "label": "Theme settings saved",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-12T20:18:06.804Z"
+    },
+    {
+      "id": "evt_880e634d5a68a57fadea",
+      "type": "settings-save",
+      "label": "Theme settings saved",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-12T20:17:32.222Z"
+    },
+    {
+      "id": "evt_b05427ce84bb63e35b5a",
+      "type": "form-submit",
+      "label": "project form submitted",
+      "meta": {
+        "id": "project_1783887402687",
+        "type": "project"
+      },
+      "actor": null,
+      "createdAt": "2026-07-12T20:16:42.690Z"
+    },
+    {
+      "id": "evt_d2a5f370e44b84ff72b3",
+      "type": "form-submit",
+      "label": "project form submitted",
+      "meta": {
+        "id": "project_1783887353154",
+        "type": "project"
+      },
+      "actor": null,
+      "createdAt": "2026-07-12T20:15:53.157Z"
+    },
+    {
+      "id": "evt_a6e1ae3635c53304eb4c",
+      "type": "form-submit",
+      "label": "project form submitted",
+      "meta": {
+        "id": "project_1783887254614",
+        "type": "project"
+      },
+      "actor": null,
+      "createdAt": "2026-07-12T20:14:14.617Z"
+    },
+    {
+      "id": "evt_781529ad102998d8307a",
+      "type": "form-submit",
+      "label": "project form submitted",
+      "meta": {
+        "id": "project_1783887220215",
+        "type": "project"
+      },
+      "actor": null,
+      "createdAt": "2026-07-12T20:13:40.218Z"
+    },
+    {
+      "id": "evt_d83b2a7509153507d911",
+      "type": "form-submit",
+      "label": "project form submitted",
+      "meta": {
+        "id": "project_1783886697654",
+        "type": "project"
+      },
+      "actor": null,
+      "createdAt": "2026-07-12T20:04:57.657Z"
+    },
+    {
+      "id": "evt_405f77151cfd1be4ea44",
+      "type": "form-submit",
+      "label": "project form submitted",
+      "meta": {
+        "id": "project_1783886671864",
+        "type": "project"
+      },
+      "actor": null,
+      "createdAt": "2026-07-12T20:04:31.867Z"
+    },
+    {
+      "id": "evt_93867df6345b9ec6dbbd",
+      "type": "form-submit",
+      "label": "contact form submitted",
+      "meta": {
+        "id": "contact_1783886053903",
+        "type": "contact"
+      },
+      "actor": null,
+      "createdAt": "2026-07-12T19:54:13.911Z"
+    },
+    {
+      "id": "evt_b7df2adaac39943cf327",
+      "type": "settings-save",
+      "label": "Theme settings saved",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-12T19:53:21.057Z"
+    },
+    {
+      "id": "evt_abbabfc970514130b74c",
+      "type": "settings-save",
+      "label": "Theme settings saved",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-12T19:52:48.845Z"
+    },
+    {
+      "id": "evt_c721aff7aae6fc36c177",
+      "type": "content-save",
+      "label": "Website content saved",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-12T19:16:13.777Z"
+    },
+    {
+      "id": "evt_cbc94847963eef51d79d",
+      "type": "content-save",
+      "label": "Website content saved",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-12T19:15:38.219Z"
+    },
+    {
+      "id": "evt_32db1d43e97bf9ab9f46",
+      "type": "media-upload",
+      "label": "Media uploaded: Screenshot 2026-07-12 133553.png",
+      "meta": {
+        "path": "/uploads/1783883720423-screenshot-2026-07-12-133553.png",
+        "mimeType": "image/png"
+      },
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-12T19:15:20.432Z"
+    },
+    {
+      "id": "evt_7519ea3f74f3a839c875",
+      "type": "settings-save",
+      "label": "Theme settings saved",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-12T19:14:56.096Z"
+    },
+    {
+      "id": "evt_1a690d16b186ffd7ab64",
+      "type": "auth-login",
+      "label": "Primary Admin signed in",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-12T19:14:45.456Z"
+    },
+    {
+      "id": "evt_660dd3a702b68396f9d4",
+      "type": "auth-login",
+      "label": "Primary Admin signed in",
+      "meta": {},
+      "actor": {
+        "id": "usr_d609ef691ede0c504227",
+        "username": "admin",
+        "displayName": "Primary Admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-11T20:40:47.244Z"
+    },
     {
       "id": "evt_df9610fb00dacb428112",
       "type": "settings-save",
@@ -150,5 +373,5 @@
       "createdAt": "2026-07-10T15:45:26.573Z"
     }
   ],
-  "updatedAt": "2026-07-10T16:07:12.747Z"
+  "updatedAt": "2026-07-12T20:24:29.973Z"
 }

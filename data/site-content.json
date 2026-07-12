@@ -74,60 +74,12 @@
   },
   "hero": {
     "eyebrow": "Biomass fuel systems for cleaner Industry",
-    "messages": [
-      "Turning waste into clean energy",
-      "Building fuel from unused biomass",
-      "Powering tomorrow, sustainably"
-    ],
-    "copy": "Bio Trend Energy converts agricultural and industrial waste streams into dependable renewable fuel for businesses ready to reduce waste and emissions.",
-    "primaryAction": {
-      "label": "Explore Solutions",
-      "path": "/solutions"
-    },
-    "secondaryAction": {
-      "label": "See Workflow",
-      "path": "/process"
-    },
-    "fullscreenLabel": "Full Video",
-    "videoSource": "/assets/bte-video-17-02-2026.mp4",
-    "videoSources": {
-      "mp4": "/assets/bte-video-17-02-2026.mp4",
-      "mov": "/assets/bte-video-17-02-2026.mov"
-    },
-    "uiWindows": [
-      {
-        "start": 0,
-        "end": 5
-      },
-      {
-        "start": 23,
-        "end": 32
-      },
-      {
-        "start": 38,
-        "end": 42
-      },
-      {
-        "start": 50,
-        "end": 58
-      },
-      {
-        "start": 70,
-        "end": 78
-      },
-      {
-        "start": 86,
-        "end": 90
-      },
-      {
-        "start": 126,
-        "end": 152
-      },
-      {
-        "start": 196,
-        "end": null
-      }
-    ]
+    "title": "Turning waste into clean energy",
+    "description": "Bio Trend Energy converts agricultural and industrial waste streams into dependable renewable fuel for businesses ready to reduce waste and emissions.",
+    "buttonPrimary": "Explore Solutions",
+    "buttonSecondary": "See Workflow",
+    "image": "/assets/hero-bioenergy.jpg",
+    "videoLink": "/assets/bte-video-17-02-2026.mp4"
   },
   "home": {
     "stats": [
@@ -348,7 +300,7 @@
           "location": "Haryana Industrial Zone",
           "stats": "Saved 14,000 Tons of CO2 annually",
           "status": "Active - 4 Years Ongoing",
-          "img": "/assets/green-energy-field.jpg"
+          "img": "/assets/project-waste-to-energy.jpg"
         },
         {
           "title": "GREEN VALLEY FOOD PROCESSING HUB",
@@ -356,7 +308,7 @@
           "location": "Punjab Agricultural Belt",
           "stats": "Eliminated crop residue burning across 35 villages",
           "status": "Active - 2 Years Ongoing",
-          "img": "/assets/nature.jpg"
+          "img": "/assets/project-biogas.jpg"
         },
         {
           "title": "ECO-HUB INDUSTRIAL STEAM CLUSTER",
@@ -364,7 +316,7 @@
           "location": "Gujarat Corridor",
           "stats": "40% reduction in average fuel expenses vs diesel",
           "status": "Commissioned & Live",
-          "img": "/assets/biomass-pellets.jpg"
+          "img": "/assets/project-biochar.jpg"
         }
       ]
     },
@@ -465,18 +417,25 @@
     }
   },
   "footer": {
-    "brandDescription": "Waste-to-energy biomass logistics and supply chain optimization for modern industrial networks.",
-    "navigationTitle": "Navigation",
-    "highlightLabel": "Start a Project ->",
+    "description": "Transforming biomass waste into clean energy for a healthier planet and a more resilient future.",
+    "quickLinksTitle": "Quick Links",
+    "solutionsTitle": "Our Solutions",
+    "resourcesTitle": "Resources",
     "contactTitle": "Get in Touch",
-    "contactChannels": {
-      "emailLabel": "Email",
-      "email": "info@biotrendenergy.com",
-      "phoneLabel": "Phone",
-      "phone": "+91 800 123 4567",
-      "headquartersLabel": "Headquarters",
-      "headquarters": "Green Tech Park, Phase II, New Delhi, India"
-    }
+    "phone": "+91 98765 43210",
+    "email": "info@biotrendenergy.com",
+    "office": "Gurugram, Haryana, India",
+    "copyright": "Copyright 2026 Bio Trend Energy. All rights reserved.",
+    "policies": [
+      {
+        "label": "Privacy Policy",
+        "href": "#home"
+      },
+      {
+        "label": "Terms of Use",
+        "href": "#home"
+      }
+    ]
   },
   "about": {
     "eyebrow": "About us",
@@ -496,5 +455,150 @@
     "missionText": "Deliver sustainable bioenergy solutions that empower communities, protect the environment and drive economic growth.",
     "visionTitle": "Our Vision",
     "visionText": "A world where waste is a resource and clean energy is accessible to all."
+  },
+  "solutions": {
+    "eyebrow": "What we do",
+    "title": "Our Solutions",
+    "description": "End-to-end bioenergy solutions built around your resources, requirements and long-term goals.",
+    "items": [
+      {
+        "title": "Biomass Power Plants",
+        "description": "High-efficiency biomass power plants for reliable and renewable energy.",
+        "icon": {}
+      },
+      {
+        "title": "Waste to Energy",
+        "description": "Converting agricultural and industrial waste into clean energy.",
+        "icon": {}
+      },
+      {
+        "title": "Biogas Solutions",
+        "description": "Advanced biogas systems for industry, communities and agriculture.",
+        "icon": {}
+      },
+      {
+        "title": "Biochar Production",
+        "description": "Turning biomass into biochar for soil health and carbon capture.",
+        "icon": {}
+      },
+      {
+        "title": "Energy Consulting",
+        "description": "Expert consulting for feasibility, design and project implementation.",
+        "icon": {}
+      },
+      {
+        "title": "Operation & Maintenance",
+        "description": "Reliable operational performance and long-term plant care.",
+        "icon": {}
+      }
+    ]
+  },
+  "process": {
+    "eyebrow": "How it works",
+    "title": "Our Process",
+    "description": "A proven process that converts waste into clean energy, built for consistent performance from source to supply.",
+    "badgeTitle": "Zero waste mindset",
+    "badgeText": "Maximum value from every resource",
+    "image": "/assets/biomass-process.jpg",
+    "steps": [
+      {
+        "title": "Feedstock Collection",
+        "description": "We source biomass waste from agriculture, industries and forestry.",
+        "icon": {}
+      },
+      {
+        "title": "Processing",
+        "description": "The biomass is sorted, dried and processed to ensure maximum efficiency.",
+        "icon": {}
+      },
+      {
+        "title": "Conversion",
+        "description": "Advanced technology converts biomass into clean, usable energy.",
+        "icon": {}
+      },
+      {
+        "title": "Energy Generation",
+        "description": "Reliable renewable energy is generated for industries and communities.",
+        "icon": {}
+      },
+      {
+        "title": "By-Products",
+        "description": "Valuable by-products such as biochar and organic fertilizer are produced.",
+        "icon": {}
+      }
+    ]
+  },
+  "projects": {
+    "eyebrow": "Projects",
+    "title": "Proven execution, delivering reliable energy transitions.",
+    "description": "Explore how Bio Trend Energy has partnered with leading industries to successfully design, supply, and run sustainable biomass projects.",
+    "summaryValue": "50+",
+    "summaryText": "projects delivered across India",
+    "items": [
+      {
+        "title": "STERLING TEXTILES BOILER RETROFIT",
+        "description": "Full combustion system modification and long-term pellet supply contract implementation. Replaced local brown coal with 8mm agri-pellets.",
+        "location": "Haryana Industrial Zone",
+        "capacity": "Saved 14,000 Tons of CO2 annually",
+        "category": "Biomass Power",
+        "image": "/assets/project-waste-to-energy.jpg",
+        "imagePosition": "50% 50%",
+        "fallbackImage": "/assets/biomass-process.jpg"
+      },
+      {
+        "title": "GREEN VALLEY FOOD PROCESSING HUB",
+        "description": "Boiler conversion for processing steam generators using agricultural waste streams. Sourced directly from local regional farmers.",
+        "location": "Punjab Agricultural Belt",
+        "capacity": "Eliminated crop residue burning across 35 villages",
+        "category": "Waste to Energy",
+        "image": "/assets/project-biogas.jpg",
+        "imagePosition": "50% 58%",
+        "fallbackImage": "/assets/project-waste-to-energy.jpg"
+      },
+      {
+        "title": "ECO-HUB INDUSTRIAL STEAM CLUSTER",
+        "description": "Shared energy microgrid supplying steam generated from organic waste to a cluster of twenty-five light chemical manufacturing facilities.",
+        "location": "Gujarat Corridor",
+        "capacity": "40% reduction in average fuel expenses vs diesel",
+        "category": "Biogas",
+        "image": "/assets/project-biochar.jpg",
+        "imagePosition": "50% 55%",
+        "fallbackImage": "/assets/project-biogas.jpg"
+      }
+    ]
+  },
+  "impact": {
+    "eyebrow": "Measurable change",
+    "title": "Our Impact",
+    "description": "Creating a positive impact on the environment, economy and society with every project we deliver.",
+    "image": "/assets/wind-impact.jpg",
+    "sdgTitle": "Sustainable Development Goals",
+    "sdgText": "Contributing to a cleaner environment and resilient communities.",
+    "items": [
+      {
+        "label": "CO2 Emissions Reduced",
+        "value": "250K+",
+        "detail": "Tons Annually",
+        "icon": {}
+      },
+      {
+        "label": "Renewable Energy Generated",
+        "value": "180+",
+        "detail": "GWh Annually",
+        "icon": {}
+      },
+      {
+        "label": "Waste Processed",
+        "value": "120K+",
+        "detail": "Tons Annually",
+        "icon": {}
+      },
+      {
+        "label": "Jobs Created",
+        "value": "350+",
+        "detail": "Direct & Indirect",
+        "icon": {}
+      }
+    ]
   }
 }

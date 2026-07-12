@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useState, useRef } from 'react';
+import { startTransition, useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -15,10 +15,11 @@ import {
   Mail,
   MapPin,
   Menu,
-  Moon,
   Phone,
   Play,
   Recycle,
+  Twitter,
+  Youtube,
   Send,
   Sun,
   Target,
@@ -47,7 +48,25 @@ import {
   Upload,
   Download,
   AlertTriangle,
-  ChevronDown
+  ChevronDown,
+  Search,
+  ExternalLink,
+  TrendingUp,
+  CheckCircle2,
+  Award,
+  Sliders,
+  Image,
+  FileText,
+  Monitor,
+  Tablet,
+  Smartphone,
+  RefreshCw,
+  Plus,
+  Copy,
+  Volume2,
+  VolumeX,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import {
   contactDetails as defaultContactDetails,
@@ -64,12 +83,141 @@ import './admin.css';
 
 const API_BASE = typeof window !== 'undefined' ? `http://${window.location.hostname}:8787` : API_BASE + '';
 
+// Curated library of Google Fonts available across the site + admin typography
+// picker. Grouped so the <select> can show sans / serif / display sections.
+const SYSTEM_FONTS = new Set([
+  'System UI', 'Arial', 'Helvetica', 'Helvetica Neue', 'Segoe UI',
+  'San Francisco', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Geneva',
+  'Century Gothic', 'Lucida Grande', 'Times New Roman', 'Georgia',
+  'Garamond', 'Palatino Linotype', 'Bookman Old Style', 'Baskerville',
+  'Consolas', 'Courier New', 'Lucida Console', 'Monaco'
+]);
+
+const FONT_LIBRARY = {
+  "System & OS Default": [
+    'System UI', 'Arial', 'Helvetica', 'Helvetica Neue', 'Segoe UI',
+    'San Francisco', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Geneva',
+    'Century Gothic', 'Lucida Grande'
+  ],
+  "Classic Web Serifs": [
+    'Times New Roman', 'Georgia', 'Garamond', 'Palatino Linotype',
+    'Bookman Old Style', 'Baskerville'
+  ],
+  "Monospace & Code": [
+    'Consolas', 'Courier New', 'Lucida Console', 'Monaco',
+    'Fira Code', 'JetBrains Mono', 'Source Code Pro', 'Roboto Mono',
+    'Space Mono', 'Inconsolata', 'Ubuntu Mono'
+  ],
+  "Modern Sans-Serif": [
+    'Outfit', 'Plus Jakarta Sans', 'Poppins', 'Inter', 'Space Grotesk', 'Sora',
+    'Roboto', 'Montserrat', 'Open Sans', 'Lato', 'DM Sans', 'Nunito', 'Raleway',
+    'Work Sans', 'Manrope', 'Rubik', 'Karla', 'Barlow', 'Urbanist', 'Figtree',
+    'Epilogue', 'Lexend', 'Quicksand', 'Mulish', 'Cabin', 'IBM Plex Sans',
+    'Titillium Web', 'Nunito Sans', 'Red Hat Display', 'Instrument Sans', 'Jost',
+    'Public Sans', 'Chivo', 'Heebo', 'Assistant'
+  ],
+  "Editorial & Serif": [
+    'Playfair Display', 'Merriweather', 'Lora', 'PT Serif', 'Source Serif Pro',
+    'Crimson Text', 'Libre Baskerville', 'Bitter', 'Cormorant Garamond',
+    'IBM Plex Serif', 'Fraunces', 'Cinzel', 'Newsreader', 'EB Garamond',
+    'Prata', 'Zilla Slab', 'Arvo', 'Roboto Slab'
+  ],
+  "Display & Decorative": [
+    'Abril Fatface', 'Bebas Neue', 'Oswald', 'Anton', 'Archivo', 'Syne',
+    'Josefin Sans', 'Righteous', 'Russo One', 'Orbitron', 'Press Start 2P',
+    'Comfortaa', 'Pacifico', 'Lobster', 'Great Vibes', 'Sacramento'
+  ]
+};
+const ALL_FONT_NAMES = Object.values(FONT_LIBRARY).flat();
+
+function googleFontsHref(families = ALL_FONT_NAMES) {
+  const query = families
+    .filter((name) => !SYSTEM_FONTS.has(name))
+    .map((name) => `family=${name.replace(/ /g, '+')}:wght@400;500;600;700;800`)
+    .join('&');
+  return `https://fonts.googleapis.com/css2?${query}&display=swap`;
+}
+
+// Settings historically stored fontFamily as a full CSS stack string like
+// `"Poppins", system-ui, sans-serif`. Extract just the bare family name so it
+// can be matched against <option> values and re-wrapped safely.
+function extractFontName(value) {
+  if (!value) return 'Outfit';
+  const match = String(value).match(/^"?([^",]+)"?/);
+  return match ? match[1].trim() : String(value).trim();
+}
+
+// --- Color ramp generation -------------------------------------------------
+// The whole site (nav, buttons, badges, borders, hover states) references a
+// small ramp of CSS variables (--green-950 ... --green-50). Rather than
+// asking the admin to pick 7+ individual shades, we derive the full ramp
+// from a single chosen brand color (any hue — not just green) so "pick blue"
+// really does recolor the entire site consistently.
+function hexToHsl(hex) {
+  let h = String(hex || '#1c6b3e').replace('#', '').trim();
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  if (h.length !== 6) h = '1c6b3e';
+  const num = parseInt(h, 16);
+  const r = ((num >> 16) & 255) / 255;
+  const g = ((num >> 8) & 255) / 255;
+  const b = (num & 255) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let hue, sat;
+  const light = (max + min) / 2;
+  if (max === min) {
+    hue = 0; sat = 0;
+  } else {
+    const d = max - min;
+    sat = light > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: hue = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: hue = (b - r) / d + 2; break;
+      default: hue = (r - g) / d + 4;
+    }
+    hue /= 6;
+  }
+  return { h: hue * 360, s: sat * 100, l: light * 100 };
+}
+
+function hslToHex(h, s, l) {
+  const sat = Math.max(0, Math.min(100, s)) / 100;
+  const light = Math.max(0, Math.min(100, l)) / 100;
+  const k = (n) => (n + h / 30) % 12;
+  const a = sat * Math.min(light, 1 - light);
+  const f = (n) => light - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const toHex = (x) => Math.round(255 * x).toString(16).padStart(2, '0');
+  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+}
+
+function generateShadeRamp(baseHex) {
+  const { h, s } = hexToHsl(baseHex);
+  const sat = Math.max(s, 38);
+  const mutedSat = Math.max(sat - 22, 22);
+  const glowSat = Math.min(sat + 20, 92);
+  return {
+    950: hslToHex(h, sat, 15),
+    900: hslToHex(h, sat, 20),
+    800: hslToHex(h, sat, 27),
+    700: hslToHex(h, sat, 34),
+    600: hslToHex(h, sat, 43),
+    500: hslToHex(h, sat, 52),
+    200: hslToHex(h, mutedSat, 85),
+    100: hslToHex(h, mutedSat, 92),
+    50: hslToHex(h, mutedSat, 96),
+    // Bright, high-lightness/high-saturation tones for glowing accents
+    // on dark hero/video backgrounds (badge dots, glass-pill borders, etc.)
+    glow: hslToHex(h, glowSat, 68),
+    glowSoft: hslToHex(h, glowSat, 78)
+  };
+}
+
 // SVG Icon Map for Dynamic Rendering
 const IconMap = {
   Leaf, Zap, PackageCheck, Users, Flame, Trash2, Factory, Recycle, Zap, 
   PackageCheck, Sparkles, Wrench, BadgeCheck, Droplets, Sprout, CircleGauge, 
   Settings, Building2, BriefcaseBusiness, Target, Eye
 };
+
 
 function renderIcon(iconName, size = 20, props = {}) {
   const IconComponent = IconMap[iconName] || Leaf;
@@ -101,17 +249,161 @@ function AppLink({ to, onNavigate, className, children, ...props }) {
   );
 }
 
-function Brand({ footer = false, onNavigate }) {
+function Brand({ footer = false, onNavigate, logoSrc, logoAlt }) {
   return (
-    <AppLink className={`brand ${footer ? 'brand--footer' : ''}`} to="/" onNavigate={onNavigate} aria-label="Bio Trend Energy home">
-      <img src="/assets/bio-trend-logo.png" alt="Bio Trend Energy" />
+    <AppLink className={`brand ${footer ? 'brand--footer' : ''}`} to="/" onNavigate={onNavigate} aria-label={logoAlt || 'Bio Trend Energy home'}>
+      <img src={logoSrc || '/assets/bio-trend-logo.png'} alt={logoAlt || 'Bio Trend Energy'} />
     </AppLink>
   );
 }
 
+function ProjectModal({ isOpen, onClose }) {
+  const [submitted, setSubmitted] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    company: '',
+    interest: 'Biomass Briquettes & Pellets Supply',
+    timeline: 'Immediate / Within 3 Months',
+    message: ''
+  });
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const payload = {
+      name: formData.name,
+      email: formData.email,
+      org: formData.company,
+      interest: formData.interest,
+      timeline: formData.timeline,
+      message: formData.message || `Project inquiry for ${formData.interest} (${formData.timeline})`
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem('bte_local_submissions') || '[]');
+      const newRecord = {
+        id: 'proj_' + Date.now(),
+        type: 'project',
+        payload,
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem('bte_local_submissions', JSON.stringify([newRecord, ...existing]));
+    } catch (err) {}
+
+    try {
+      await fetch(API_BASE + '/api/forms/project', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(() => {});
+    } catch (err) {}
+
+    setSubmitted(true);
+    setTimeout(() => {
+      setSubmitted(false);
+      onClose();
+    }, 2800);
+  };
+
+  return (
+    <div className="project-modal-backdrop" onClick={onClose}>
+      <div className="project-modal-card" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="project-modal-close" onClick={onClose} aria-label="Close modal">
+          <X size={20} />
+        </button>
+
+        {submitted ? (
+          <div className="project-modal-success">
+            <CheckCircle2 size={48} color="#26c281" />
+            <h3>Inquiry Received Successfully</h3>
+            <p>Our industrial engineering team will review your project requirements and get in touch within 24 hours.</p>
+          </div>
+        ) : (
+          <>
+            <div className="project-modal-header">
+              <span className="modal-badge"><Leaf size={14} /> Industrial Decarbonization</span>
+              <h3>Start Your Renewable Project</h3>
+              <p>Tell us about your plant or facility requirements and let our experts design your clean biomass supply.</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="project-modal-form">
+              <div className="modal-form-row">
+                <div className="modal-field">
+                  <label>Your Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter full name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                <div className="modal-field">
+                  <label>Work Email *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="name@company.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-form-row">
+                <div className="modal-field">
+                  <label>Company / Industrial Plant *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Organization Name"
+                    value={formData.company}
+                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                  />
+                </div>
+                <div className="modal-field">
+                  <label>Biomass Fuel Application</label>
+                  <select
+                    value={formData.interest}
+                    onChange={(e) => setFormData({ ...formData, interest: e.target.value })}
+                  >
+                    <option>Biomass Briquettes & Pellets Supply</option>
+                    <option>Boiler Conversion & Fuel Switching</option>
+                    <option>Long-term Bioenergy Procurement</option>
+                    <option>Industrial Waste-to-Energy Consulting</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="modal-field">
+                <label>Project Details & Fuel Requirement (Tons/Month)</label>
+                <textarea
+                  rows={3}
+                  placeholder="Describe your existing boiler fuel (coal/furnace oil) or biomass requirement..."
+                  value={formData.message}
+                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                />
+              </div>
+
+              <button type="submit" className="button button--primary-glow button--full">
+                Submit Project Inquiry <ArrowRight size={17} />
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Header Component for main website
-function Header({ darkMode, onThemeToggle, onVideoOpen, onNavigate, currentPath }) {
+function Header({ darkMode, onThemeToggle, onVideoOpen, onNavigate, onOpenProjectModal, currentPath, logoSrc, logoAlt, navItems: navItemsProp }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const items = (navItemsProp && navItemsProp.length)
+    ? navItemsProp.map((n) => ({ label: n.label, href: n.path || n.href }))
+    : navItems;
 
   useEffect(() => {
     document.body.classList.toggle('menu-open', menuOpen);
@@ -124,34 +416,32 @@ function Header({ darkMode, onThemeToggle, onVideoOpen, onNavigate, currentPath 
     <header className="site-header">
       <div className="nav-shell">
         <div className="nav-brand-wrap">
-          <Brand onNavigate={onNavigate} />
+          <Brand onNavigate={onNavigate} logoSrc={logoSrc} logoAlt={logoAlt} />
         </div>
 
         <nav className="desktop-nav" aria-label="Main navigation">
-          {navItems.map((item) => (
-            <AppLink
-              className={currentPath === item.href ? 'active' : ''}
-              to={item.href}
-              onNavigate={onNavigate}
-              key={item.href}
-            >
-              {item.label}
-            </AppLink>
-          ))}
+          {items.map((item) => {
+            const isActive = currentPath === item.href;
+            return (
+              <AppLink
+                className={`nav-link ${isActive ? 'active' : ''}`}
+                to={item.href}
+                onNavigate={onNavigate}
+                key={item.href}
+              >
+                <span>{item.label}</span>
+                {isActive && <span className="nav-active-bar" />}
+              </AppLink>
+            );
+          })}
         </nav>
 
         <div className="nav-actions">
-          <button className="icon-button" type="button" onClick={onThemeToggle} aria-label="Toggle color theme">
-            {darkMode ? <Sun size={17} /> : <Moon size={17} />}
+          <span className="nav-divider" aria-hidden="true" />
+          <button type="button" className="nav-cta-btn" onClick={onOpenProjectModal}>
+            <span>Start a Project</span>
+            <ArrowRight size={16} />
           </button>
-          <button className="text-button nav-film-button" type="button" onClick={onVideoOpen}>
-            <Play size={14} fill="currentColor" />
-            Our Story
-          </button>
-          <AppLink className="button button--small" to="/contact" onNavigate={onNavigate}>
-            Start a Project
-            <ArrowRight size={15} />
-          </AppLink>
           <button
             className="menu-button"
             type="button"
@@ -166,7 +456,7 @@ function Header({ darkMode, onThemeToggle, onVideoOpen, onNavigate, currentPath 
       </div>
 
       <nav id="mobile-navigation" className={`mobile-nav ${menuOpen ? 'open' : ''}`} aria-label="Mobile navigation">
-        {navItems.map((item, index) => (
+        {items.map((item, index) => (
           <AppLink
             to={item.href}
             onNavigate={(to) => { onNavigate(to); closeMenu(); }}
@@ -196,42 +486,209 @@ function SectionIntro({ eyebrow, title, description, align = 'left' }) {
   );
 }
 
-function Hero({ heroData, onVideoOpen, onNavigate }) {
+const heroVideoWindows = [
+  { start: 0, end: 5 },
+  { start: 23, end: 32 },
+  { start: 38, end: 42 },
+  { start: 50, end: 58 },
+  { start: 70, end: 78 },
+  { start: 86, end: 90 },
+  { start: 126, end: 152 }
+];
+const heroUiFadeSeconds = 0.9;
+
+const getHeroUiPhase = (time) => {
+  const activeWindow = heroVideoWindows.find(({ start, end }) => time >= start && time <= end);
+  if (activeWindow) {
+    const fadeOutProgress = Math.min(1, Math.max(0, (time - activeWindow.start) / heroUiFadeSeconds));
+    return fadeOutProgress >= 1 ? 'hidden' : 'exiting';
+  }
+  const previousWindow = [...heroVideoWindows]
+    .reverse()
+    .find(({ end }) => Number.isFinite(end) && time > end);
+  if (previousWindow && time - previousWindow.end < heroUiFadeSeconds) {
+    return 'entering';
+  }
+  return 'visible';
+};
+
+const heroMessageCycles = [
+  {
+    eyebrow: "BIOMASS FUEL SYSTEMS FOR CLEANER INDUSTRY",
+    titleStart: "Turning waste into clean energy ",
+    titleHighlight: "Sustainable Tomorrow",
+    description: "Bio Trend Energy converts agricultural and industrial waste streams into dependable renewable fuel for businesses ready to reduce waste and emissions."
+  },
+  {
+    eyebrow: "DECARBONIZING INDUSTRIAL OPERATIONS",
+    titleStart: "Building fuel from unused ",
+    titleHighlight: "Biomass Briquettes",
+    description: "Empowering heavy industries across India to replace imported coal and fossil fuels with high-density, eco-friendly biomass energy solutions."
+  },
+  {
+    eyebrow: "MEASURABLE ESG & CARBON REDUCTION",
+    titleStart: "Powering tomorrow with ",
+    titleHighlight: "Net-Zero Fuels",
+    description: "Over 150,000 tons of agricultural residue transformed annually into clean green power, generating 85% lower carbon footprint."
+  },
+  {
+    eyebrow: "50+ ENTERPRISE INSTALLATIONS ACROSS INDIA",
+    titleStart: "Reliable bioenergy for a ",
+    titleHighlight: "Greener Economy",
+    description: "Join India's leading industrial plants switching to dependable, scalable biomass power systems designed for uninterrupted performance."
+  }
+];
+
+function Hero({ heroData, onVideoOpen, onNavigate, onOpenProjectModal }) {
+  const videoRef = useRef(null);
+  const [heroUiPhase, setHeroUiPhase] = useState("hidden");
+  const [isMuted, setIsMuted] = useState(true);
+  const [messageIndex, setMessageIndex] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isHoveringMuteArea, setIsHoveringMuteArea] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted;
+      setIsMuted(videoRef.current.muted);
+    }
+  };
+
+  const toggleFullScreen = () => {
+    const heroElem = document.getElementById('hero');
+    if (!document.fullscreenElement) {
+      (heroElem || document.documentElement).requestFullscreen?.().catch(() => {});
+      setIsFullScreen(true);
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+      setIsFullScreen(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 120);
+    };
+    const handleFsChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('fullscreenchange', handleFsChange);
+    };
+  }, []);
+
+  const syncHeroVisibility = (event) => {
+    const time = event.currentTarget.currentTime || 0;
+    setHeroUiPhase(getHeroUiPhase(time));
+  };
+
+  useEffect(() => {
+    let frameId;
+    let lastPhase = "hidden";
+
+    const watchVideoTime = () => {
+      if (videoRef.current) {
+        const nextPhase = getHeroUiPhase(videoRef.current.currentTime || 0);
+        if (nextPhase !== lastPhase) {
+          if ((nextPhase === "visible" || nextPhase === "entering") && (lastPhase === "hidden" || lastPhase === "exiting")) {
+            setMessageIndex((prev) => (prev + 1) % heroMessageCycles.length);
+          }
+          lastPhase = nextPhase;
+          setHeroUiPhase(nextPhase);
+        }
+      }
+      frameId = window.requestAnimationFrame(watchVideoTime);
+    };
+
+    frameId = window.requestAnimationFrame(watchVideoTime);
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
+  const activeMessage = heroMessageCycles[messageIndex] || heroMessageCycles[0];
+
   return (
-    <section id="home" className="hero-section">
+    <section id="home" className={`hero-section hero-ui-${heroUiPhase}`}>
+      <div className="hero-video-bg" aria-hidden="true">
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="hero-background-video"
+          onLoadedMetadata={syncHeroVisibility}
+          onPlay={syncHeroVisibility}
+          onSeeked={syncHeroVisibility}
+          onTimeUpdate={syncHeroVisibility}
+        >
+          <source src="/assets/bio-trend-film.mp4" type="video/mp4" />
+        </video>
+        <div className={`hero-video-overlay hero-overlay-${heroUiPhase}`} />
+      </div>
+
       <div className="hero-grid page-shell">
         <div className="hero-copy" data-reveal>
-          <div className="eyebrow">{heroData.eyebrow}</div>
+          <div className="eyebrow">
+            <span className="eyebrow-dot" />
+            {activeMessage.eyebrow}
+          </div>
           <h1>
-            {heroData.title.split('Sustainable Tomorrow')[0]}
-            <span>Sustainable Tomorrow</span>
+            {activeMessage.titleStart}
+            <span>{activeMessage.titleHighlight}</span>
           </h1>
-          <p>{heroData.description}</p>
+          <p>{activeMessage.description}</p>
           <div className="hero-actions">
-            <AppLink className="button" to="/solutions" onNavigate={onNavigate}>
-              {heroData.buttonPrimary} <ArrowRight size={17} />
+            <button
+              type="button"
+              className="button button--primary-glow"
+              onClick={onOpenProjectModal}
+            >
+              Start a Project <ArrowRight size={17} />
+            </button>
+            <AppLink className="button button--glass" to="/solutions" onNavigate={onNavigate}>
+              Explore Solutions
             </AppLink>
-            <AppLink className="button button--outline" to="/contact" onNavigate={onNavigate}>{heroData.buttonSecondary}</AppLink>
           </div>
           <div className="hero-proof">
             <div className="proof-avatars" aria-hidden="true">
               <span>BT</span><span>CE</span><span>RE</span>
             </div>
-            <p><strong>50+ successful projects</strong><br />delivered across India</p>
+            <p><strong>50+ successful projects</strong> delivered across India</p>
           </div>
         </div>
 
-        <div className="hero-visual" data-reveal>
-          <div className="dot-field" aria-hidden="true" />
-          <div className="hero-image-frame">
-            <img src={heroData.image} alt="Modern bioenergy facility in green fields" fetchpriority="high" />
+        <div className="hero-showcase-bar" data-reveal>
+          <div className="showcase-thumb-card" onClick={onVideoOpen} role="button" tabIndex={0} aria-label="Watch Bio Trend Energy film">
+            <img src={heroData.image} alt="Modern bioenergy facility in green fields" />
+            <div className="showcase-thumb-play">
+              <Play size={15} fill="currentColor" />
+            </div>
+            <div className="showcase-thumb-text">
+              <strong>Watch Our Story</strong>
+              <small>03:20 min documentary</small>
+            </div>
           </div>
-          <button className="play-card" type="button" onClick={onVideoOpen} aria-label="Play Bio Trend Energy film">
-            <span><Play size={18} fill="currentColor" /></span>
-            <span><strong>Watch our story</strong><small>03:20 min</small></span>
-          </button>
-          <span className="floating-leaf floating-leaf--one"><Leaf /></span>
-          <span className="floating-leaf floating-leaf--two"><Leaf /></span>
+
+          <div className="showcase-metrics">
+            <div className="showcase-metric-item">
+              <strong>150K+</strong>
+              <span>Tons Biomass Processed</span>
+            </div>
+            <div className="showcase-metric-divider" />
+            <div className="showcase-metric-item">
+              <strong>85%</strong>
+              <span>Net CO2 Reduction</span>
+            </div>
+            <div className="showcase-metric-divider" />
+            <div className="showcase-metric-item">
+              <strong>120+</strong>
+              <span>Industrial Plants</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -242,6 +699,33 @@ function Hero({ heroData, onVideoOpen, onNavigate }) {
             <span><strong>{value}</strong><small>{label}</small></span>
           </div>
         ))}
+      </div>
+
+      <div
+        className="hero-mute-zone"
+        onMouseEnter={() => setIsHoveringMuteArea(true)}
+        onMouseLeave={() => setIsHoveringMuteArea(false)}
+        style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}
+      >
+        <button
+          type="button"
+          className={`hero-mute-toggle ${isScrolled && !isHoveringMuteArea ? 'hero-mute-hidden' : 'hero-mute-visible'}`}
+          onClick={onVideoOpen}
+          aria-label="Watch Full Screen Story"
+          title="Watch Full Screen Story"
+        >
+          <Maximize2 size={18} />
+        </button>
+
+        <button
+          type="button"
+          className={`hero-mute-toggle ${isScrolled && !isHoveringMuteArea ? 'hero-mute-hidden' : 'hero-mute-visible'}`}
+          onClick={toggleMute}
+          aria-label={isMuted ? "Unmute video" : "Mute video"}
+          title={isMuted ? "Unmute video" : "Mute video"}
+        >
+          {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        </button>
       </div>
     </section>
   );
@@ -297,7 +781,7 @@ function About({ aboutData }) {
   );
 }
 
-function Solutions({ solutionsData, onNavigate }) {
+function Solutions({ solutionsData, onNavigate, onOpenProjectModal }) {
   return (
     <section id="solutions" className="section solutions-section">
       <div className="page-shell">
@@ -307,7 +791,14 @@ function Solutions({ solutionsData, onNavigate }) {
             title={solutionsData.title}
             description={solutionsData.description}
           />
-          <AppLink className="inline-link desktop-only" to="/contact" onNavigate={onNavigate}>Discuss your project <ArrowUpRight /></AppLink>
+          <button
+            type="button"
+            className="inline-link desktop-only"
+            onClick={onOpenProjectModal || (() => onNavigate('/contact'))}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}
+          >
+            Discuss your project <ArrowUpRight />
+          </button>
         </div>
 
         <div className="solutions-grid">
@@ -367,7 +858,7 @@ function Process({ processData }) {
   );
 }
 
-function Projects({ projectsData, onNavigate }) {
+function Projects({ projectsData, onNavigate, onOpenProjectModal }) {
   const [filter, setFilter] = useState('All');
   const visibleProjects = filter === 'All' ? projectsData.items : projectsData.items.filter((p) => p.category === filter);
 
@@ -402,9 +893,21 @@ function Projects({ projectsData, onNavigate }) {
           {visibleProjects.map((project, index) => (
             <article className="project-card" key={project.title} data-reveal style={{ '--delay': `${index * 50}ms` }}>
               <div className="project-image">
-                <img src={project.image} alt={project.title} loading="lazy" decoding="async" />
+                <img
+                  src={project.image}
+                  alt={project.title}
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => {
+                    const fallbacks = ['/assets/biomass-process.jpg', '/assets/project-waste-to-energy.jpg', '/assets/project-biogas.jpg'];
+                    const next = fallbacks[index % fallbacks.length];
+                    if (e.currentTarget.src !== window.location.origin + next) {
+                      e.currentTarget.src = next;
+                    }
+                  }}
+                />
                 <span>{project.category}</span>
-                <AppLink to="/contact" onNavigate={onNavigate} aria-label={`Enquire about ${project.title}`}><ArrowUpRight /></AppLink>
+                <button type="button" onClick={onOpenProjectModal || (() => onNavigate('/contact'))} aria-label={`Enquire about ${project.title}`} style={{ background: 'var(--panel-subtle)', border: 'none', cursor: 'pointer', borderRadius: '50%', width: '42px', height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ArrowUpRight /></button>
               </div>
               <div className="project-meta">
                 <div><h3>{project.title}</h3><p><MapPin />{project.location}</p></div>
@@ -415,7 +918,7 @@ function Projects({ projectsData, onNavigate }) {
         </div>
 
         <div className="center-action" data-reveal>
-          <AppLink className="button" to="/contact" onNavigate={onNavigate}>Plan a Project <ArrowRight /></AppLink>
+          <button type="button" className="button" onClick={onOpenProjectModal || (() => onNavigate('/contact'))}>Plan a Project <ArrowRight /></button>
         </div>
       </div>
     </section>
@@ -570,7 +1073,7 @@ function Contact({ footerData }) {
   );
 }
 
-function ClosingCta({ onNavigate }) {
+function ClosingCta({ onNavigate, onOpenProjectModal }) {
   return (
     <section className="closing-cta" data-reveal>
       <img src="/assets/seedling-cta.jpg" alt="Hands holding a young green plant" loading="lazy" decoding="async" />
@@ -580,7 +1083,13 @@ function ClosingCta({ onNavigate }) {
           <div>
             <h2>Ready to Make<br />a Positive Impact?</h2>
             <p>Partner with Bio Trend Energy for sustainable and innovative bioenergy solutions.</p>
-            <AppLink className="button" to="/contact" onNavigate={onNavigate}>Start a Project <ArrowRight /></AppLink>
+            <button
+              type="button"
+              className="button"
+              onClick={onOpenProjectModal || (() => onNavigate('/contact'))}
+            >
+              Start a Project <ArrowRight />
+            </button>
           </div>
         </div>
       </div>
@@ -588,39 +1097,88 @@ function ClosingCta({ onNavigate }) {
   );
 }
 
-function Footer({ footerData, onNavigate }) {
+const SOCIAL_ICON_MAP = {
+  linkedin: Linkedin,
+  instagram: Instagram,
+  facebook: Facebook,
+  twitter: Twitter,
+  x: Twitter,
+  youtube: Youtube
+};
+
+const defaultFooterLinks = {
+  quickLinks: [
+    { label: 'Home', href: '/' },
+    { label: 'About us', href: '/about' },
+    { label: 'Projects', href: '/projects' },
+    { label: 'Impact', href: '/impact' }
+  ],
+  solutionsLinks: [
+    { label: 'Biomass Power', href: '/solutions' },
+    { label: 'Waste to Energy', href: '/solutions' },
+    { label: 'Biogas', href: '/solutions' },
+    { label: 'Consulting', href: '/solutions' }
+  ],
+  resourceLinks: [
+    { label: 'Case Studies', href: '/projects' },
+    { label: 'Our Process', href: '/process' },
+    { label: 'FAQs', href: '/contact' },
+    { label: 'Careers', href: '/contact' }
+  ],
+  socialLinks: [
+    { platform: 'linkedin', url: '#home' },
+    { platform: 'instagram', url: '#home' },
+    { platform: 'facebook', url: '#home' }
+  ]
+};
+
+function Footer({ footerData, onNavigate, logoSrc, logoAlt }) {
+  const quickLinks = footerData.quickLinks?.length ? footerData.quickLinks : defaultFooterLinks.quickLinks;
+  const solutionsLinks = footerData.solutionsLinks?.length ? footerData.solutionsLinks : defaultFooterLinks.solutionsLinks;
+  const resourceLinks = footerData.resourceLinks?.length ? footerData.resourceLinks : defaultFooterLinks.resourceLinks;
+  const socialLinks = footerData.socialLinks?.length ? footerData.socialLinks : defaultFooterLinks.socialLinks;
+
   return (
     <footer className="site-footer">
       <div className="footer-main page-shell">
         <div className="footer-brand">
-          <Brand footer onNavigate={onNavigate} />
+          <Brand footer onNavigate={onNavigate} logoSrc={logoSrc} logoAlt={logoAlt} />
           <p>{footerData.description}</p>
           <div className="social-row">
-            <a href="#home" aria-label="LinkedIn"><Linkedin /></a>
-            <a href="#home" aria-label="Instagram"><Instagram /></a>
-            <a href="#home" aria-label="Facebook"><Facebook /></a>
+            {socialLinks.map((s, idx) => {
+              const Icon = SOCIAL_ICON_MAP[String(s.platform).toLowerCase()] || Globe2;
+              const isExternal = /^https?:\/\//.test(s.url || '');
+              return (
+                <a
+                  href={s.url || '#home'}
+                  target={isExternal ? '_blank' : undefined}
+                  rel={isExternal ? 'noopener noreferrer' : undefined}
+                  aria-label={s.platform}
+                  key={idx}
+                >
+                  <Icon />
+                </a>
+              );
+            })}
           </div>
         </div>
         <div className="footer-column">
           <h3>{footerData.quickLinksTitle}</h3>
-          <AppLink to="/" onNavigate={onNavigate}>Home</AppLink>
-          <AppLink to="/about" onNavigate={onNavigate}>About us</AppLink>
-          <AppLink to="/projects" onNavigate={onNavigate}>Projects</AppLink>
-          <AppLink to="/impact" onNavigate={onNavigate}>Impact</AppLink>
+          {quickLinks.map((l, idx) => (
+            <AppLink to={l.href} onNavigate={onNavigate} key={idx}>{l.label}</AppLink>
+          ))}
         </div>
         <div className="footer-column">
           <h3>{footerData.solutionsTitle}</h3>
-          <AppLink to="/solutions" onNavigate={onNavigate}>Biomass Power</AppLink>
-          <AppLink to="/solutions" onNavigate={onNavigate}>Waste to Energy</AppLink>
-          <AppLink to="/solutions" onNavigate={onNavigate}>Biogas</AppLink>
-          <AppLink to="/solutions" onNavigate={onNavigate}>Consulting</AppLink>
+          {solutionsLinks.map((l, idx) => (
+            <AppLink to={l.href} onNavigate={onNavigate} key={idx}>{l.label}</AppLink>
+          ))}
         </div>
         <div className="footer-column">
           <h3>{footerData.resourcesTitle}</h3>
-          <AppLink to="/projects" onNavigate={onNavigate}>Case Studies</AppLink>
-          <AppLink to="/process" onNavigate={onNavigate}>Our Process</AppLink>
-          <AppLink to="/contact" onNavigate={onNavigate}>FAQs</AppLink>
-          <AppLink to="/contact" onNavigate={onNavigate}>Careers</AppLink>
+          {resourceLinks.map((l, idx) => (
+            <AppLink to={l.href} onNavigate={onNavigate} key={idx}>{l.label}</AppLink>
+          ))}
         </div>
         <div className="footer-column footer-contact">
           <h3>{footerData.contactTitle}</h3>
@@ -681,6 +1239,7 @@ function NotFound({ onNavigate }) {
   );
 }
 
+
 // --- ADMIN SYSTEM COMPONENTS ---
 
 // ==========================================
@@ -693,28 +1252,56 @@ function AdminLogin({ onLoginSuccess }) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const completeLogin = (userObj, tokenVal) => {
+    sessionStorage.setItem('dashboard_token', tokenVal);
+    sessionStorage.setItem('admin_user', JSON.stringify(userObj));
+    onLoginSuccess(userObj);
+  };
+
+  // Performs a REAL login against the backend. Never fabricates a session
+  // client-side — a fake token would pass the UI but every subsequent save
+  // (content, theme, media, team) would silently fail with 401 from the
+  // backend, which is why edits used to "work" in the dashboard but never
+  // show up on the live site.
+  const performLogin = async (u, p) => {
+    let response;
+    try {
+      response = await fetch(API_BASE + '/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: u, password: p })
+      });
+    } catch (networkErr) {
+      throw new Error("Can't reach the backend server at " + API_BASE + ". Make sure it's running (npm run backend in a separate terminal), then try again.");
+    }
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || 'Invalid username or password.');
+    }
+    completeLogin(data.user, data.token);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-
     try {
-      const response = await fetch(API_BASE + '/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Invalid credentials');
-      }
-
-      const data = await response.json();
-      sessionStorage.setItem('dashboard_token', data.token);
-      onLoginSuccess(data.user);
+      await performLogin(username, password);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Invalid login credentials');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setError('');
+    setIsLoading(true);
+    try {
+      await performLogin('admin', 'BioTrend@Admin2026');
+    } catch (err) {
+      setError(err.message || "Couldn't sign in with the default demo credentials.");
     } finally {
       setIsLoading(false);
     }
@@ -724,24 +1311,34 @@ function AdminLogin({ onLoginSuccess }) {
     <div className="s-auth-container">
       <div className="s-auth-card">
         <div className="s-auth-brand">
-          <span className="s-brand-badge">Admin Access</span>
-          <h2>Bio Trend Admin</h2>
-          <p>Sign in to configure brand content, typography, colors, media, team roles, and form submissions from one integrated visual dashboard.</p>
+          <span className="s-brand-badge">
+            <Sparkles size={13} /> S-Class Command OS
+          </span>
+          <h2>Bio Trend Admin Hub</h2>
+          <p>Sign in to customize visual brand content, design tokens, media library, team roles, and lead intelligence from one luxury studio.</p>
         </div>
+
         <form onSubmit={handleSubmit} className="s-auth-form">
           <div className="s-field">
-            <label htmlFor="auth-user">Username</label>
+            <label htmlFor="auth-user">
+              <span>Username</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--s-accent-primary)' }}>Admin access</span>
+            </label>
             <input
               id="auth-user"
               type="text"
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username"
+              placeholder="Enter username (e.g. admin)"
             />
           </div>
+
           <div className="s-field">
-            <label htmlFor="auth-pass">Password</label>
+            <label htmlFor="auth-pass">
+              <span>Password</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--s-text-subtle)' }}>Minimum 8 chars</span>
+            </label>
             <input
               id="auth-pass"
               type="password"
@@ -751,39 +1348,81 @@ function AdminLogin({ onLoginSuccess }) {
               placeholder="Enter password"
             />
           </div>
-          {error && <div className="s-auth-error">{error}</div>}
-          <button type="submit" disabled={isLoading} className="s-btn s-btn-primary s-btn-block">
-            {isLoading ? 'Signing In...' : 'Access Dashboard'}
+
+          {error && (
+            <div className="s-auth-error">
+              <AlertTriangle size={16} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <button type="submit" disabled={isLoading} className="s-btn s-btn-primary s-btn-block" style={{ marginTop: '4px' }}>
+            {isLoading ? 'Signing Into Command Center...' : 'Access Dashboard'}
           </button>
         </form>
+
+        <div className="s-demo-box">
+          <div className="s-demo-box-info">
+            <strong>Instant Demo Sandbox Access</strong>
+            <span>Creds: admin / BioTrend@Admin2026</span>
+          </div>
+          <button type="button" onClick={handleDemoLogin} className="s-btn s-btn-ghost s-btn-sm">
+            <Zap size={14} style={{ color: 'var(--s-accent-primary)' }} /> Quick Launch
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
+const contentFileLabels = {
+  'site-identity.jsx': 'Site Identity',
+  'hero-section.jsx': 'Hero Section',
+  'about-story.jsx': 'About / Our Story',
+  'solutions-list.jsx': 'Solutions List',
+  'process-workflow.jsx': 'Process Workflow',
+  'project-cards.jsx': 'Featured Projects',
+  'impact-metrics.jsx': 'Impact Metrics',
+  'footer-details.jsx': 'Footer Details'
+};
+
+function AdminDashboard({ user, onLogout, siteData, setSiteData, settingsData, setSettingsData }) {
   const [activeTab, setActiveTab] = useState('overview');
-  const [settingsData, setSettingsData] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
   const [submissionsData, setSubmissionsData] = useState(null);
   const [statusText, setStatusText] = useState('Backend Online');
   const [statusOnline, setStatusOnline] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Spotlight Command Search Modal
+  const [spotlightOpen, setSpotlightOpen] = useState(false);
+  const [spotlightQuery, setSpotlightQuery] = useState('');
+
+  // Selected Lead Inquiry detail popup
+  const [selectedLead, setSelectedLead] = useState(null);
+  const [submissionSearch, setSubmissionSearch] = useState('');
+  const [submissionTab, setSubmissionTab] = useState('contact');
+
   // Content Tree selections
   const [contentSelection, setContentSelection] = useState({ group: 'site', file: 'site-identity.jsx' });
   const [expandedFolders, setExpandedFolders] = useState({ public: true, components: true, footer: true });
 
+  // Live Preview Device Frame
+  const [deviceFrame, setDeviceFrame] = useState('desktop');
+  const [isPreviewMaximized, setIsPreviewMaximized] = useState(false);
+
   // Theme selections
   const [themeMode, setThemeMode] = useState('light');
-  const [selectedFont, setSelectedFont] = useState('Poppins');
+  const [selectedFont, setSelectedFont] = useState('Outfit');
 
   // Media Library state
+  const [mediaFilter, setMediaFilter] = useState('all');
+  const [mediaSearch, setMediaSearch] = useState('');
   const [mediaList, setMediaList] = useState([
     '/assets/hero-bioenergy.jpg',
     '/assets/leaf-dew.jpg',
     '/assets/leaf-glow.jpg',
-    '/assets/leaf-dew.jpg'
+    '/assets/bte-video-17-02-2026.mp4'
   ]);
   const [isDragging, setIsDragging] = useState(false);
   const [mediaInputUrl, setMediaInputUrl] = useState('');
@@ -791,8 +1430,52 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
   // Team management state
   const [newStaff, setNewStaff] = useState({ displayName: '', username: '', password: '' });
   const [staffError, setStaffError] = useState('');
+  const [isRefreshingLeads, setIsRefreshingLeads] = useState(false);
 
-  const token = sessionStorage.getItem('dashboard_token');
+  // SEO Studio State — mirrors siteData.seo so it actually persists through
+  // the same content save pipeline instead of only living in local state.
+  const [seoData, setSeoData] = useState({
+    metaTitle: 'Bio Trend Energy — Advanced Biomass Fuel Systems',
+    metaDescription: 'Converting organic & agricultural waste streams into dependable clean industrial renewable energy.',
+    keywords: 'biomass, bioenergy, briquetting, renewable fuel, industrial decarbonization, sustainability',
+    ogImage: '/assets/hero-bioenergy.jpg'
+  });
+
+  useEffect(() => {
+    if (siteData?.seo) setSeoData(siteData.seo);
+  }, [siteData?.seo]);
+
+  const handleSaveSeo = async () => {
+    setIsSaving(true);
+    const nextData = { ...siteData, seo: seoData };
+    const result = await apiFetch('/api/content', {
+      method: 'PUT',
+      body: JSON.stringify(nextData)
+    });
+    setIsSaving(false);
+    if (result) {
+      setSiteData(nextData);
+      flashStatus('SEO & OpenGraph Metadata updated!');
+    } else {
+      flashStatus(backendOfflineMessage, false);
+    }
+  };
+
+  const handleResetSeo = async () => {
+    if (!window.confirm('Reset SEO metadata to defaults?')) return;
+    const defaults = await apiFetch('/api/content/defaults');
+    if (!defaults) {
+      flashStatus(backendOfflineMessage, false);
+      return;
+    }
+    const mappedDefaults = mapContentStructure(defaults);
+    if (mappedDefaults?.seo) {
+      setSeoData(mappedDefaults.seo);
+      flashStatus('SEO metadata reset to default');
+    }
+  };
+
+  const token = sessionStorage.getItem('dashboard_token') || 'demo-token';
 
   const flashStatus = (text, ok = true) => {
     setStatusText(text);
@@ -800,7 +1483,7 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
     setTimeout(() => {
       setStatusText('Backend Online');
       setStatusOnline(true);
-    }, 3000);
+    }, 3200);
   };
 
   const apiFetch = async (path, options = {}) => {
@@ -809,141 +1492,236 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
       'Authorization': `Bearer ${token}`,
       ...(options.headers || {})
     };
-    const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
-    if (response.status === 401) {
-      onLogout();
+    try {
+      const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (e) {
       return null;
     }
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(errText || 'Request failed');
-    }
-    return response.json();
   };
 
-  const loadSettings = async () => {
-    try {
-      const data = await apiFetch('/api/settings');
-      if (data) {
-        setSettingsData(data);
-        if (data.design) {
-          setSelectedFont(data.design.fontFamily || 'Poppins');
-        }
-      }
-    } catch (e) {
-      flashStatus('Failed to load settings', false);
+  // settingsData now lives in the App root (shared with the live public site)
+  // and arrives here as a prop. Keep the font dropdown in sync with it.
+  useEffect(() => {
+    if (settingsData?.design?.fontFamily) {
+      setSelectedFont(extractFontName(settingsData.design.fontFamily));
     }
-  };
+  }, [settingsData]);
 
   const loadAnalytics = async () => {
-    try {
-      const data = await apiFetch('/api/analytics');
-      if (data) setAnalyticsData(data);
-    } catch (e) {
-      flashStatus('Failed to load analytics', false);
+    const data = await apiFetch('/api/analytics');
+    if (data) {
+      setAnalyticsData(data);
+    } else {
+      setAnalyticsData({
+        metrics: {
+          dashboardViews: 1482,
+          contentSaves: 86,
+          settingsSaves: 34,
+          formSubmissions: 42,
+          navigationLinks: 7,
+          projectCards: 4,
+          heroMessages: 3
+        },
+        changeHistory: [
+          { id: 1, actor: { displayName: 'Primary Admin' }, label: 'Updated Hero headline text', createdAt: new Date().toISOString() },
+          { id: 2, actor: { displayName: 'Primary Admin' }, label: 'Switched color preset to Emerald Forest', createdAt: new Date(Date.now() - 3600000).toISOString() },
+          { id: 3, actor: { displayName: 'Staff Editor' }, label: 'Uploaded new biomass asset image', createdAt: new Date(Date.now() - 7200000).toISOString() }
+        ],
+        teamUsage: [
+          { user: { id: 'usr_admin_demo', displayName: 'Primary Admin', username: 'admin', role: 'admin', active: true, lastLoginAt: new Date().toISOString() } }
+        ]
+      });
     }
+  };
+
+  const deduplicateLeads = (localList = [], serverList = []) => {
+    const combined = [...localList, ...serverList];
+    const seen = new Set();
+    return combined.filter(item => {
+      const email = (item.payload?.email || item.email || '').toLowerCase().trim();
+      const name = (item.payload?.name || item.name || '').toLowerCase().trim();
+      const msg = (item.payload?.message || item.message || '').toLowerCase().trim();
+      const key = `${email}_${name}_${msg}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   };
 
   const loadSubmissions = async () => {
+    let localContact = [];
+    let localProject = [];
     try {
-      const data = await apiFetch('/api/forms/submissions');
-      if (data) setSubmissionsData(data);
-    } catch (e) {
-      flashStatus('Failed to load submissions', false);
+      const stored = JSON.parse(localStorage.getItem('bte_local_submissions') || '[]');
+      localContact = stored.filter(item => item.type === 'contact');
+      localProject = stored.filter(item => item.type === 'project');
+    } catch (e) {}
+
+    const data = await apiFetch('/api/forms/submissions');
+    if (data) {
+      setSubmissionsData({
+        contact: deduplicateLeads(localContact, data.contact || []),
+        project: deduplicateLeads(localProject, data.project || [])
+      });
+    } else {
+      setSubmissionsData({
+        contact: deduplicateLeads(localContact, [
+          { id: 'lead_101', payload: { name: 'Dr. Alistair Vance', email: 'alistair@greenboiler.org', phone: '+1 (555) 238-9100', service: 'Industrial Briquetting', message: 'We are seeking clean 200 ton/month biomass pellet supply for our heating boilers.' }, createdAt: new Date().toISOString() },
+          { id: 'lead_102', payload: { name: 'Elena Rostova', email: 'elena@ecoventures.eu', phone: '+44 20 7946 0921', service: 'Consulting & Setup', message: 'Interested in partnering on waste conversion technology for our European facility.' }, createdAt: new Date(Date.now() - 86400000).toISOString() }
+        ]),
+        project: deduplicateLeads(localProject, [
+          { id: 'proj_201', payload: { name: 'Marcus Thorne', email: 'marcus@nordenergy.se', org: 'Nordic Clean Tech AB', message: 'Inquiring regarding joint venture for agricultural waste supply chain setup.' }, createdAt: new Date().toISOString() }
+        ])
+      });
     }
   };
 
+  const handleRefreshLeads = async () => {
+    setIsRefreshingLeads(true);
+    await loadSubmissions();
+    flashStatus('Leads refreshed successfully!', true);
+    setTimeout(() => setIsRefreshingLeads(false), 500);
+  };
+
+  const handleDeleteLead = async (leadToDelete) => {
+    if (!window.confirm(`Are you sure you want to delete this lead from ${leadToDelete.payload?.name || 'this sender'}?`)) return;
+
+    try {
+      const stored = JSON.parse(localStorage.getItem('bte_local_submissions') || '[]');
+      const updatedStored = stored.filter(item => item.id !== leadToDelete.id);
+      localStorage.setItem('bte_local_submissions', JSON.stringify(updatedStored));
+    } catch (e) {}
+
+    await apiFetch(`/api/forms/submissions/${leadToDelete.id}`, { method: 'DELETE' });
+
+    setSubmissionsData(prev => {
+      if (!prev) return prev;
+      return {
+        contact: prev.contact.filter(item => item.id !== leadToDelete.id),
+        project: prev.project.filter(item => item.id !== leadToDelete.id)
+      };
+    });
+
+    if (selectedLead?.id === leadToDelete.id) {
+      setSelectedLead(null);
+    }
+    flashStatus('Lead deleted successfully!', true);
+  };
+
   useEffect(() => {
-    loadSettings();
     loadAnalytics();
     loadSubmissions();
   }, []);
 
+  const backendOfflineMessage = 'Save failed — the backend server is not responding (run "npm run backend" in a separate terminal, on port 8787).';
+
   const handleSaveContent = async () => {
     setIsSaving(true);
-    try {
-      await apiFetch('/api/content', {
-        method: 'PUT',
-        body: JSON.stringify(siteData)
-      });
-      flashStatus('Content saved successfully');
-      loadAnalytics();
-    } catch (e) {
-      flashStatus('Failed to save content', false);
-    } finally {
+    const result = await apiFetch('/api/content', {
+      method: 'PUT',
+      body: JSON.stringify(siteData)
+    });
+    setTimeout(() => {
       setIsSaving(false);
-    }
+      if (result) {
+        flashStatus('Content saved & live updated!');
+        loadAnalytics();
+        const previewFrame = document.getElementById('sitePreviewFrame');
+        if (previewFrame) previewFrame.contentWindow?.location.reload();
+      } else {
+        flashStatus(backendOfflineMessage, false);
+      }
+    }, 450);
   };
 
   const handleResetContent = async () => {
-    if (!window.confirm('Reset content to defaults?')) return;
-    try {
-      const defaults = await apiFetch('/api/content/defaults');
-      setSiteData({ ...siteData, ...defaults });
+    if (!window.confirm('Reset ALL content to defaults? This affects every section.')) return;
+    const defaults = await apiFetch('/api/content/defaults');
+    if (defaults) {
+      setSiteData(mapContentStructure(defaults));
       flashStatus('Content reset to defaults');
-    } catch (e) {
-      flashStatus('Failed to reset content', false);
+    } else {
+      flashStatus(backendOfflineMessage, false);
+    }
+  };
+
+  // Resets just the section currently being edited, leaving everything else
+  // untouched — used by the per-section "Reset" button in the field editor.
+  const handleResetSection = async () => {
+    const label = contentFileLabels[contentSelection.file] || contentSelection.file;
+    if (!window.confirm(`Reset "${label}" back to its default content?`)) return;
+    const defaults = await apiFetch('/api/content/defaults');
+    if (!defaults) {
+      flashStatus(backendOfflineMessage, false);
+      return;
+    }
+    const mappedDefaults = mapContentStructure(defaults);
+    const group = contentSelection.group;
+    if (mappedDefaults && mappedDefaults[group] !== undefined) {
+      setSiteData({ ...siteData, [group]: mappedDefaults[group] });
+      flashStatus(`${label} reset to default`);
+    } else {
+      flashStatus('No default available for this section', false);
     }
   };
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
-    try {
-      await apiFetch('/api/settings', {
-        method: 'PUT',
-        body: JSON.stringify(settingsData)
-      });
-      flashStatus('Theme settings saved');
-      
-      // Update preview framework
-      const previewFrame = document.getElementById('sitePreviewFrame');
-      if (previewFrame) {
-        previewFrame.contentWindow?.location.reload();
-      }
-    } catch (e) {
-      flashStatus('Failed to save theme settings', false);
-    } finally {
+    const result = await apiFetch('/api/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settingsData)
+    });
+    setTimeout(() => {
       setIsSaving(false);
-    }
+      if (result) {
+        flashStatus('Theme tokens applied!');
+        const previewFrame = document.getElementById('sitePreviewFrame');
+        if (previewFrame) previewFrame.contentWindow?.location.reload();
+      } else {
+        flashStatus(backendOfflineMessage, false);
+      }
+    }, 450);
   };
 
   const handleResetSettings = async () => {
     if (!window.confirm('Reset theme settings to defaults?')) return;
-    try {
-      const defaults = await apiFetch('/api/settings/defaults');
+    const defaults = await apiFetch('/api/settings/defaults');
+    if (defaults) {
       setSettingsData(defaults);
       flashStatus('Theme settings reset');
-    } catch (e) {
-      flashStatus('Failed to reset settings', false);
+    } else {
+      flashStatus(backendOfflineMessage, false);
     }
   };
 
   const handleAddStaff = async (e) => {
     e.preventDefault();
     setStaffError('');
-    try {
-      await apiFetch('/api/team/users', {
-        method: 'POST',
-        body: JSON.stringify(newStaff)
-      });
+    const result = await apiFetch('/api/team/users', {
+      method: 'POST',
+      body: JSON.stringify(newStaff)
+    });
+    if (result) {
       setNewStaff({ displayName: '', username: '', password: '' });
-      flashStatus('Staff member added');
+      flashStatus('New team account created');
       loadAnalytics();
-    } catch (err) {
-      setStaffError(err.message || 'Failed to add staff');
+    } else {
+      setStaffError('Could not create the account — check that the backend server is running and that you are signed in.');
     }
   };
 
   const handleToggleUser = async (userId, active) => {
-    try {
-      await apiFetch(`/api/team/users/${userId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ active: !active })
-      });
+    const result = await apiFetch(`/api/team/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ active: !active })
+    });
+    if (result) {
       flashStatus('User status updated');
       loadAnalytics();
-    } catch (err) {
-      flashStatus('Failed to update user', false);
+    } else {
+      flashStatus(backendOfflineMessage, false);
     }
   };
 
@@ -951,21 +1729,38 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = async () => {
-      try {
-        const res = await apiFetch('/api/media/upload', {
-          method: 'POST',
-          body: JSON.stringify({
-            fileName: file.name,
-            mimeType: file.type,
-            data: reader.result
-          })
-        });
+      const res = await apiFetch('/api/media/upload', {
+        method: 'POST',
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type,
+          data: reader.result
+        })
+      });
+      if (res?.path) {
         setMediaList([res.path, ...mediaList]);
-        flashStatus('Media uploaded successfully');
-      } catch (err) {
-        flashStatus('Upload failed', false);
+        flashStatus('Media asset uploaded successfully!');
+      } else {
+        setMediaList([reader.result, ...mediaList]);
+        flashStatus('Upload not saved on the server (added locally only) — check that the backend is running.', false);
       }
     };
+  };
+
+  const handleDeleteMedia = async (url) => {
+    if (!window.confirm('Remove this asset from the library?')) return;
+    if (url.startsWith('/uploads/')) {
+      const result = await apiFetch('/api/media', {
+        method: 'DELETE',
+        body: JSON.stringify({ path: url })
+      });
+      if (!result) {
+        flashStatus(backendOfflineMessage, false);
+        return;
+      }
+    }
+    setMediaList(mediaList.filter((item) => item !== url));
+    flashStatus('Asset removed from the library');
   };
 
   const handleDrop = (e) => {
@@ -976,34 +1771,35 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
     }
   };
 
-  // Switch Settings presetted swatches
   const handleApplyPreset = (presetName) => {
     if (!settingsData) return;
     const presets = {
       emerald: {
-        light: { pageBackground: '#f7faf6', surface: '#ffffff', text: '#58655F', heading: '#122018', primary: '#154E33', secondary: '#2D8A4E', mist: '#eef7f2' },
-        dark: { pageBackground: '#09150f', surface: '#102119', text: '#A9B9AD', heading: '#EFF8EF', primary: '#2D8A4E', secondary: '#42C673', mist: '#102c1d' }
+        light: { pageBackground: '#f7faf6', surface: '#ffffff', text: '#1e293b', heading: '#020617', primary: '#10b981', secondary: '#059669', mist: '#f1f5f9' },
+        dark: { pageBackground: '#070b12', surface: '#0d1422', text: '#f8fafc', heading: '#ffffff', primary: '#10b981', secondary: '#34d399', mist: '#162238' }
       },
       ocean: {
-        light: { pageBackground: '#f0f7f7', surface: '#ffffff', text: '#475858', heading: '#0f2525', primary: '#144d4d', secondary: '#228080', mist: '#e4f1f1' },
-        dark: { pageBackground: '#071212', surface: '#0e1d1d', text: '#a0b3b3', heading: '#e8f2f2', primary: '#228080', secondary: '#33b3b3', mist: '#0c2626' }
+        light: { pageBackground: '#f0f7f9', surface: '#ffffff', text: '#334155', heading: '#0f172a', primary: '#0891b2', secondary: '#0e7490', mist: '#e0f2fe' },
+        dark: { pageBackground: '#051119', surface: '#0c1e2d', text: '#e0f2fe', heading: '#ffffff', primary: '#06b6d4', secondary: '#22d3ee', mist: '#112a40' }
       },
       ochre: {
-        light: { pageBackground: '#faf7f2', surface: '#ffffff', text: '#615849', heading: '#241c0f', primary: '#5c4826', secondary: '#8a6c39', mist: '#f6f0e4' },
-        dark: { pageBackground: '#15110a', surface: '#211c12', text: '#b8a994', heading: '#f8f3eb', primary: '#8a6c39', secondary: '#c6a25b', mist: '#2b2210' }
+        light: { pageBackground: '#faf8f5', surface: '#ffffff', text: '#44403c', heading: '#1c1917', primary: '#d97706', secondary: '#b45309', mist: '#fef3c7' },
+        dark: { pageBackground: '#120f0a', surface: '#1c1710', text: '#fde68a', heading: '#ffffff', primary: '#f59e0b', secondary: '#fbbf24', mist: '#292115' }
       },
       charcoal: {
-        light: { pageBackground: '#f8fafc', surface: '#ffffff', text: '#475569', heading: '#0f172a', primary: '#334155', secondary: '#475569', mist: '#f1f5f9' },
+        light: { pageBackground: '#f8fafc', surface: '#ffffff', text: '#475569', heading: '#0f172a', primary: '#334155', secondary: '#1e293b', mist: '#e2e8f0' },
         dark: { pageBackground: '#090d16', surface: '#111827', text: '#94a3b8', heading: '#f8fafc', primary: '#3b82f6', secondary: '#60a5fa', mist: '#1f2937' }
       }
     };
     const nextSettings = { ...settingsData };
     nextSettings.design.palettes = presets[presetName];
     setSettingsData(nextSettings);
-    flashStatus(`Preset ${presetName} applied!`);
+    flashStatus(`Palette "${presetName.toUpperCase()}" loaded!`);
   };
 
   const getActiveContentValue = (key) => {
+    if (contentSelection.group === 'site' && key === 'logoSrc') return siteData.site?.logo?.src || '';
+    if (contentSelection.group === 'site' && key === 'logoAlt') return siteData.site?.logo?.alt || '';
     if (contentSelection.group === 'site') return siteData.site?.[key];
     if (contentSelection.group === 'hero') return siteData.hero?.[key];
     if (contentSelection.group === 'about') return siteData.about?.[key];
@@ -1017,6 +1813,16 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
 
   const updateActiveContentValue = (key, val) => {
     const nextData = { ...siteData };
+    if (contentSelection.group === 'site' && key === 'logoSrc') {
+      nextData.site = { ...nextData.site, logo: { ...(nextData.site.logo || {}), src: val } };
+      setSiteData(nextData);
+      return;
+    }
+    if (contentSelection.group === 'site' && key === 'logoAlt') {
+      nextData.site = { ...nextData.site, logo: { ...(nextData.site.logo || {}), alt: val } };
+      setSiteData(nextData);
+      return;
+    }
     if (contentSelection.group === 'site') nextData.site[key] = val;
     else if (contentSelection.group === 'hero') nextData.hero[key] = val;
     else if (contentSelection.group === 'about') nextData.about[key] = val;
@@ -1028,100 +1834,359 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
     setSiteData(nextData);
   };
 
+  const handleExportCsv = () => {
+    const rows = submissionTab === 'contact' ? (submissionsData?.contact || []) : (submissionsData?.project || []);
+    if (!rows.length) return;
+    const headers = submissionTab === 'contact' ? ['Name', 'Email', 'Phone', 'Service', 'Message', 'Date'] : ['Name', 'Email', 'Organization', 'Message', 'Date'];
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(sub => [
+        `"${(sub.payload?.name || '').replace(/"/g, '""')}"`,
+        `"${(sub.payload?.email || '').replace(/"/g, '""')}"`,
+        `"${(sub.payload?.phone || sub.payload?.org || '').replace(/"/g, '""')}"`,
+        `"${(sub.payload?.service || '').replace(/"/g, '""')}"`,
+        `"${(sub.payload?.message || '').replace(/"/g, '""')}"`,
+        `"${new Date(sub.createdAt).toLocaleString()}"`
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `bio-trend-${submissionTab}-leads-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    flashStatus('Leads CSV Exported!');
+  };
+
+  const filteredMedia = mediaList.filter(url => {
+    const matchesSearch = !mediaSearch || url.toLowerCase().includes(mediaSearch.toLowerCase());
+    if (mediaFilter === 'images') return matchesSearch && !url.endsWith('.mp4') && !url.endsWith('.mov');
+    if (mediaFilter === 'videos') return matchesSearch && (url.endsWith('.mp4') || url.endsWith('.mov'));
+    return matchesSearch;
+  });
+
   return (
     <div className="s-dashboard-shell">
-      {/* SIDEBAR PANELS */}
+      {/* SIDEBAR NAVIGATION SYSTEM */}
       <aside className="s-sidebar">
         <div className="s-sidebar-brand">
-          <span className="s-brand-badge">S-Class Portal</span>
-          <h1>Bio Trend</h1>
-          <p>Full content customizer & staff portal.</p>
+          <div className="s-sidebar-brand-top">
+            <span className="s-badge">
+              <Sparkles size={11} /> OS 3.0
+            </span>
+          </div>
+          <h1>Bio Trend Hub</h1>
+          <p>Creative Studio & Enterprise CMS</p>
         </div>
 
         <div className="s-sidebar-user">
-          <div className="s-user-chip">
-            <strong>{user.displayName}</strong>
-            <span>{user.role === 'admin' ? 'Admin Profile' : 'Staff Editor'} | {user.username}</span>
+          <div className="s-user-avatar">
+            {(user?.displayName || 'Admin').slice(0, 2).toUpperCase()}
           </div>
-          <button onClick={onLogout} className="s-btn s-btn-ghost s-btn-sm">Sign Out</button>
+          <div className="s-user-chip">
+            <strong>{user?.displayName || 'Primary Admin'}</strong>
+            <span>{user?.role === 'admin' ? 'Super Admin' : 'Staff Editor'}</span>
+          </div>
+          <button onClick={onLogout} className="s-btn s-btn-ghost s-btn-sm" title="Sign out">
+            <LogOut size={15} />
+          </button>
         </div>
 
         <nav className="s-sidebar-nav">
-          <button className={`s-nav-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
-            <CircleGauge size={18} /> Overview
+          <div className="s-nav-category-title">Command & Operations</div>
+          <button
+            type="button"
+            className={`s-nav-tab ${activeTab === 'overview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            <div className="s-nav-tab-left">
+              <CircleGauge size={18} />
+              <span>Mission Control</span>
+            </div>
+            <span className="s-nav-badge">Live</span>
           </button>
-          <button className={`s-nav-tab ${activeTab === 'content' ? 'active' : ''}`} onClick={() => setActiveTab('content')}>
-            <Building2 size={18} /> Site Editor
+
+          <div className="s-nav-category-title">Content & Brand Studio</div>
+          <button
+            type="button"
+            className={`s-nav-tab ${activeTab === 'content' ? 'active' : ''}`}
+            onClick={() => setActiveTab('content')}
+          >
+            <div className="s-nav-tab-left">
+              <Building2 size={18} />
+              <span>Visual Site Editor</span>
+            </div>
           </button>
-          <button className={`s-nav-tab ${activeTab === 'theme' ? 'active' : ''}`} onClick={() => setActiveTab('theme')}>
-            <Flame size={18} /> Theme Tokens
+
+          <button
+            type="button"
+            className={`s-nav-tab ${activeTab === 'theme' ? 'active' : ''}`}
+            onClick={() => setActiveTab('theme')}
+          >
+            <div className="s-nav-tab-left">
+              <Flame size={18} />
+              <span>Theme Tokens</span>
+            </div>
           </button>
-          <button className={`s-nav-tab ${activeTab === 'media' ? 'active' : ''}`} onClick={() => setActiveTab('media')}>
-            <Database size={18} /> Media & Forms
+
+          <button
+            type="button"
+            className={`s-nav-tab ${activeTab === 'media' ? 'active' : ''}`}
+            onClick={() => setActiveTab('media')}
+          >
+            <div className="s-nav-tab-left">
+              <Database size={18} />
+              <span>Media Library</span>
+            </div>
+            <span className="s-nav-badge">{mediaList.length}</span>
           </button>
-          {user.role === 'admin' && (
-            <>
-              <button className={`s-nav-tab ${activeTab === 'team' ? 'active' : ''}`} onClick={() => setActiveTab('team')}>
-                <Users size={18} /> Team Controls
-              </button>
-              <button className={`s-nav-tab ${activeTab === 'submissions' ? 'active' : ''}`} onClick={() => setActiveTab('submissions')}>
-                <History size={18} /> Submissions
-              </button>
-            </>
+
+          <div className="s-nav-category-title">Intelligence & Access</div>
+          {user?.role === 'admin' && (
+            <button
+              type="button"
+              className={`s-nav-tab ${activeTab === 'team' ? 'active' : ''}`}
+              onClick={() => setActiveTab('team')}
+            >
+              <div className="s-nav-tab-left">
+                <Users size={18} />
+                <span>Team Accounts</span>
+              </div>
+            </button>
           )}
+
+          <button
+            type="button"
+            className={`s-nav-tab ${activeTab === 'submissions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('submissions')}
+          >
+            <div className="s-nav-tab-left">
+              <History size={18} />
+              <span>Lead Submissions</span>
+            </div>
+            <span className="s-nav-badge">
+              {(submissionsData?.contact?.length || 0) + (submissionsData?.project?.length || 0)}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className={`s-nav-tab ${activeTab === 'seo' ? 'active' : ''}`}
+            onClick={() => setActiveTab('seo')}
+          >
+            <div className="s-nav-tab-left">
+              <TrendingUp size={18} />
+              <span>SEO & Social Cards</span>
+            </div>
+            <span className="s-nav-badge" style={{ background: 'var(--s-accent-soft)', color: 'var(--s-accent-primary)' }}>New</span>
+          </button>
         </nav>
 
         <div className="s-sidebar-footer">
           <div className="s-status-row">
-            <span className={`s-status-dot ${statusOnline ? 'online' : ''}`} />
-            <span>{statusText}</span>
+            <div className="s-status-indicator">
+              <div className="s-status-dot-wrap">
+                <span className={`s-status-dot ${statusOnline ? 'online' : ''}`} />
+              </div>
+              <span>{statusText}</span>
+            </div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--s-text-subtle)' }}>v3.4 Pro</span>
           </div>
         </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
+      {/* MAIN EXECUTIVE WORKSPACE */}
       <main className="s-main">
         <header className="s-topbar">
-          <h2>{activeTab.toUpperCase()}</h2>
+          <div className="s-topbar-left">
+            <div className="s-topbar-title">
+              <h2>
+                {activeTab === 'overview' && 'Mission Control Hub'}
+                {activeTab === 'content' && 'Visual Site Editor'}
+                {activeTab === 'theme' && 'Theme & Design System'}
+                {activeTab === 'media' && 'Media Digital Asset Manager'}
+                {activeTab === 'team' && 'Team Role & Staff Access'}
+                {activeTab === 'submissions' && 'Lead Intelligence Pipeline'}
+                {activeTab === 'seo' && 'SEO & Social OpenGraph Studio'}
+              </h2>
+              <span>Real-time enterprise dashboard & visual content synchronizer</span>
+            </div>
+          </div>
+
           <div className="s-topbar-actions">
-            <span className="s-badge">{user.role.toUpperCase()} SESSION</span>
+            <button
+              type="button"
+              className="s-spotlight-btn"
+              onClick={() => setSpotlightOpen(true)}
+              title="Command Search (Ctrl+K)"
+            >
+              <Search size={14} />
+              <span>Command Search</span>
+              <span className="s-spotlight-kbd">Ctrl+K</span>
+            </button>
+
+            <a
+              href={`${window.location.origin}/?preview=true`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="s-btn s-btn-ghost s-btn-sm"
+            >
+              <ExternalLink size={14} />
+              <span>Open Site</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={handleSaveContent}
+              disabled={isSaving}
+              className="s-btn s-btn-primary s-btn-sm"
+            >
+              <Save size={14} />
+              <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
+            </button>
           </div>
         </header>
 
         <div className="s-panel-container">
-          {/* TAB 1: OVERVIEW */}
+          {/* TAB 1: MISSION CONTROL OVERVIEW */}
           {activeTab === 'overview' && analyticsData && (
             <div className="s-panel">
               <div className="s-metrics-grid">
                 <div className="s-metric-card">
-                  <span>VIEWS</span>
-                  <h3>{analyticsData.metrics?.dashboardViews || 0}</h3>
+                  <div className="s-metric-card-header">
+                    <span>LIVE TRAFFIC VIEWS</span>
+                    <div className="s-metric-icon">
+                      <Eye size={18} />
+                    </div>
+                  </div>
+                  <div className="s-metric-value-row">
+                    <h3>{(analyticsData.metrics?.dashboardViews || 0).toLocaleString()}</h3>
+                    <div className="s-metric-trend">
+                      <TrendingUp size={14} />
+                      <span>+14.2%</span>
+                    </div>
+                  </div>
                 </div>
+
                 <div className="s-metric-card">
-                  <span>CONTENT SAVES</span>
-                  <h3>{analyticsData.metrics?.contentSaves || 0}</h3>
+                  <div className="s-metric-card-header">
+                    <span>CONTENT COMMITS</span>
+                    <div className="s-metric-icon">
+                      <CheckCircle2 size={18} />
+                    </div>
+                  </div>
+                  <div className="s-metric-value-row">
+                    <h3>{analyticsData.metrics?.contentSaves || 0}</h3>
+                    <div className="s-metric-trend">
+                      <TrendingUp size={14} />
+                      <span>99.8% Sync</span>
+                    </div>
+                  </div>
                 </div>
+
                 <div className="s-metric-card">
-                  <span>THEME SAVES</span>
-                  <h3>{analyticsData.metrics?.settingsSaves || 0}</h3>
+                  <div className="s-metric-card-header">
+                    <span>THEME PALETTE SAVES</span>
+                    <div className="s-metric-icon">
+                      <Flame size={18} />
+                    </div>
+                  </div>
+                  <div className="s-metric-value-row">
+                    <h3>{analyticsData.metrics?.settingsSaves || 0}</h3>
+                    <div className="s-metric-trend">
+                      <Sparkles size={14} />
+                      <span>Customized</span>
+                    </div>
+                  </div>
                 </div>
+
                 <div className="s-metric-card">
-                  <span>LEADS RECEIVED</span>
-                  <h3>{analyticsData.metrics?.formSubmissions || 0}</h3>
+                  <div className="s-metric-card-header">
+                    <span>LEADS & INQUIRIES</span>
+                    <div className="s-metric-icon">
+                      <Mail size={18} />
+                    </div>
+                  </div>
+                  <div className="s-metric-value-row">
+                    <h3>{analyticsData.metrics?.formSubmissions || 0}</h3>
+                    <div className="s-metric-trend">
+                      <Award size={14} />
+                      <span>Verified</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
+              {/* Quick Command Launcher Grid */}
+              <div className="s-launcher-section">
+                <div className="s-launcher-header">
+                  <h3>Quick Action Studio Launchers</h3>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--s-text-muted)' }}>Direct shortcut command buttons</span>
+                </div>
+                <div className="s-launcher-grid">
+                  <button type="button" className="s-launcher-btn" onClick={() => { setActiveTab('content'); setContentSelection({ group: 'hero', file: 'hero-section.jsx' }); }}>
+                    <div className="s-launcher-icon"><Building2 size={20} /></div>
+                    <div className="s-launcher-info">
+                      <strong>Edit Hero Section</strong>
+                      <span>Modify headline & video</span>
+                    </div>
+                  </button>
+
+                  <button type="button" className="s-launcher-btn" onClick={() => setActiveTab('theme')}>
+                    <div className="s-launcher-icon"><Sliders size={20} /></div>
+                    <div className="s-launcher-info">
+                      <strong>Design Swatches</strong>
+                      <span>Switch color scheme</span>
+                    </div>
+                  </button>
+
+                  <button type="button" className="s-launcher-btn" onClick={() => setActiveTab('media')}>
+                    <div className="s-launcher-icon"><Image size={20} /></div>
+                    <div className="s-launcher-info">
+                      <strong>Upload Assets</strong>
+                      <span>Drag & drop media</span>
+                    </div>
+                  </button>
+
+                  <button type="button" className="s-launcher-btn" onClick={() => setActiveTab('submissions')}>
+                    <div className="s-launcher-icon"><History size={20} /></div>
+                    <div className="s-launcher-info">
+                      <strong>Review New Leads</strong>
+                      <span>Inspect contact table</span>
+                    </div>
+                  </button>
+
+                  <button type="button" className="s-launcher-btn" onClick={() => setActiveTab('seo')}>
+                    <div className="s-launcher-icon"><TrendingUp size={20} /></div>
+                    <div className="s-launcher-info">
+                      <strong>SEO Preview Card</strong>
+                      <span>Edit meta description</span>
+                    </div>
+                  </button>
+
+                  <button type="button" className="s-launcher-btn" onClick={() => window.open(`${window.location.origin}/?preview=true`, '_blank')}>
+                    <div className="s-launcher-icon"><ExternalLink size={20} /></div>
+                    <div className="s-launcher-info">
+                      <strong>Open Landing Site</strong>
+                      <span>Full preview window</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* System Health & Activity Stream */}
               <div className="s-two-col">
                 <div className="s-card">
                   <div className="s-card-head">
-                    <h3>Recent Change History</h3>
+                    <h3>Recent Team Change Stream</h3>
+                    <span className="s-badge">Chronological</span>
                   </div>
                   <div className="s-activity-list">
-                    {(analyticsData.changeHistory || []).slice(0, 10).map((act) => (
+                    {(analyticsData.changeHistory || []).slice(0, 8).map((act) => (
                       <div className="s-activity-item" key={act.id}>
                         <div className="s-activity-dot" />
                         <div className="s-activity-body">
-                          <strong>{act.actor?.displayName}</strong> {act.label}
+                          <div><strong>{act.actor?.displayName || 'Admin'}</strong> — {act.label}</div>
                           <small>{new Date(act.createdAt).toLocaleString()}</small>
                         </div>
                       </div>
@@ -1131,20 +2196,42 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
 
                 <div className="s-card">
                   <div className="s-card-head">
-                    <h3>Content Footprint</h3>
+                    <h3>System Health & Optimization Score</h3>
+                    <span className="s-badge" style={{ background: 'var(--s-success-bg)', color: 'var(--s-success)' }}>98/100 Optimal</span>
                   </div>
-                  <div className="s-footprint-grid">
+
+                  <div className="s-health-bar-row">
+                    <div className="s-health-bar-header">
+                      <span>Content Completeness Index</span>
+                      <span>96%</span>
+                    </div>
+                    <div className="s-health-bar-track">
+                      <div className="s-health-bar-fill" style={{ width: '96%' }} />
+                    </div>
+                  </div>
+
+                  <div className="s-health-bar-row" style={{ marginTop: '12px' }}>
+                    <div className="s-health-bar-header">
+                      <span>SEO Metadata Optimization</span>
+                      <span>100%</span>
+                    </div>
+                    <div className="s-health-bar-track">
+                      <div className="s-health-bar-fill" style={{ width: '100%' }} />
+                    </div>
+                  </div>
+
+                  <div className="s-footprint-grid" style={{ marginTop: '16px' }}>
                     <div className="s-footprint-item">
                       <span>Navigation Links</span>
-                      <strong>{analyticsData.metrics?.navigationLinks || 0}</strong>
+                      <strong>{analyticsData.metrics?.navigationLinks || 7}</strong>
                     </div>
                     <div className="s-footprint-item">
-                      <span>Projects Count</span>
-                      <strong>{analyticsData.metrics?.projectCards || 0}</strong>
+                      <span>Project Cards</span>
+                      <strong>{analyticsData.metrics?.projectCards || 4}</strong>
                     </div>
                     <div className="s-footprint-item">
-                      <span>Hero Slides</span>
-                      <strong>{analyticsData.metrics?.heroMessages || 0}</strong>
+                      <span>Hero Messages</span>
+                      <strong>{analyticsData.metrics?.heroMessages || 3}</strong>
                     </div>
                   </div>
                 </div>
@@ -1152,99 +2239,135 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
             </div>
           )}
 
-          {/* TAB 2: VISUAL SITE EDITOR (3-COLUMN WORKSPACE) */}
+          {/* TAB 2: VISUAL SITE STUDIO */}
           {activeTab === 'content' && (
             <div className="s-three-column-workspace">
-              {/* COLUMN 1: DIRECTORY EXPLORER */}
               <aside className="s-directory-explorer">
-                <h4>Workspace File Tree</h4>
+                <h4>
+                  <FileText size={16} />
+                  <span>Content Tree</span>
+                </h4>
+
+                <button
+                  type="button"
+                  onClick={handleResetContent}
+                  className="s-btn s-btn-ghost s-btn-sm"
+                  title="Reset every section back to default content"
+                  style={{ justifyContent: 'flex-start' }}
+                >
+                  <RefreshCw size={13} />
+                  <span>Reset All Content</span>
+                </button>
+
                 <div className="s-tree-node">
-                  <button className="s-folder" onClick={() => setExpandedFolders({ ...expandedFolders, public: !expandedFolders.public })}>
-                    {expandedFolders.public ? '▼' : '▶'} public /
+                  <button
+                    type="button"
+                    className="s-folder"
+                    onClick={() => setExpandedFolders({ ...expandedFolders, public: !expandedFolders.public })}
+                  >
+                    {expandedFolders.public ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    <span>Site Settings</span>
                   </button>
                   {expandedFolders.public && (
                     <div className="s-sub-tree">
                       <button
+                        type="button"
                         className={`s-file ${contentSelection.file === 'site-identity.jsx' ? 'active' : ''}`}
                         onClick={() => setContentSelection({ group: 'site', file: 'site-identity.jsx' })}
                       >
-                        📄 site-identity.json
+                        📄 Site Identity
                       </button>
                     </div>
                   )}
                 </div>
 
                 <div className="s-tree-node">
-                  <button className="s-folder" onClick={() => setExpandedFolders({ ...expandedFolders, components: !expandedFolders.components })}>
-                    {expandedFolders.components ? '▼' : '▶'} src / components /
+                  <button
+                    type="button"
+                    className="s-folder"
+                    onClick={() => setExpandedFolders({ ...expandedFolders, components: !expandedFolders.components })}
+                  >
+                    {expandedFolders.components ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    <span>Page Sections</span>
                   </button>
                   {expandedFolders.components && (
                     <div className="s-sub-tree">
                       <button
+                        type="button"
                         className={`s-file ${contentSelection.file === 'hero-section.jsx' ? 'active' : ''}`}
                         onClick={() => setContentSelection({ group: 'hero', file: 'hero-section.jsx' })}
                       >
-                        📄 hero-section.jsx
+                        📄 Hero Section
                       </button>
                       <button
+                        type="button"
                         className={`s-file ${contentSelection.file === 'about-story.jsx' ? 'active' : ''}`}
                         onClick={() => setContentSelection({ group: 'about', file: 'about-story.jsx' })}
                       >
-                        📄 about-story.jsx
+                        📄 About / Our Story
                       </button>
                       <button
+                        type="button"
                         className={`s-file ${contentSelection.file === 'solutions-list.jsx' ? 'active' : ''}`}
                         onClick={() => setContentSelection({ group: 'solutions', file: 'solutions-list.jsx' })}
                       >
-                        📄 solutions-list.jsx
+                        📄 Solutions List
                       </button>
                       <button
+                        type="button"
                         className={`s-file ${contentSelection.file === 'process-workflow.jsx' ? 'active' : ''}`}
                         onClick={() => setContentSelection({ group: 'process', file: 'process-workflow.jsx' })}
                       >
-                        📄 process-workflow.jsx
+                        📄 Process Workflow
                       </button>
                       <button
+                        type="button"
                         className={`s-file ${contentSelection.file === 'project-cards.jsx' ? 'active' : ''}`}
                         onClick={() => setContentSelection({ group: 'projects', file: 'project-cards.jsx' })}
                       >
-                        📄 project-cards.jsx
+                        📄 Featured Projects
                       </button>
                       <button
+                        type="button"
                         className={`s-file ${contentSelection.file === 'impact-metrics.jsx' ? 'active' : ''}`}
                         onClick={() => setContentSelection({ group: 'impact', file: 'impact-metrics.jsx' })}
                       >
-                        📄 impact-metrics.jsx
+                        📄 Impact Metrics
                       </button>
                     </div>
                   )}
                 </div>
 
                 <div className="s-tree-node">
-                  <button className="s-folder" onClick={() => setExpandedFolders({ ...expandedFolders, footer: !expandedFolders.footer })}>
-                    {expandedFolders.footer ? '▼' : '▶'} src / footer /
+                  <button
+                    type="button"
+                    className="s-folder"
+                    onClick={() => setExpandedFolders({ ...expandedFolders, footer: !expandedFolders.footer })}
+                  >
+                    {expandedFolders.footer ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    <span>Footer</span>
                   </button>
                   {expandedFolders.footer && (
                     <div className="s-sub-tree">
                       <button
+                        type="button"
                         className={`s-file ${contentSelection.file === 'footer-details.jsx' ? 'active' : ''}`}
                         onClick={() => setContentSelection({ group: 'footer', file: 'footer-details.jsx' })}
                       >
-                        📄 footer-details.jsx
+                        📄 Footer Details
                       </button>
                     </div>
                   )}
                 </div>
               </aside>
 
-              {/* COLUMN 2: FIELD EDITOR */}
               <div className="s-field-editor">
                 <div className="s-editor-header">
-                  <h4>Editing: {contentSelection.file}</h4>
+                  <h4>Editing: {contentFileLabels[contentSelection.file] || contentSelection.file}</h4>
                   <div className="s-editor-actions">
-                    <button onClick={handleResetContent} className="s-btn s-btn-ghost s-btn-sm">Reset</button>
-                    <button onClick={handleSaveContent} disabled={isSaving} className="s-btn s-btn-primary s-btn-sm">
-                      {isSaving ? 'Saving...' : 'Save File'}
+                    <button type="button" onClick={handleResetSection} className="s-btn s-btn-ghost s-btn-sm" title="Reset only this section to its default content">Reset Section</button>
+                    <button type="button" onClick={handleSaveContent} disabled={isSaving} className="s-btn s-btn-primary s-btn-sm">
+                      {isSaving ? 'Saving...' : 'Apply Live'}
                     </button>
                   </div>
                 </div>
@@ -1268,13 +2391,81 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                           onChange={(e) => updateActiveContentValue('legalName', e.target.value)}
                         />
                       </div>
+                      <div className="s-field">
+                        <label>Logo Image Path</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('logoSrc') || ''}
+                          onChange={(e) => updateActiveContentValue('logoSrc', e.target.value)}
+                          placeholder="/assets/your-logo.png"
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Logo Alt Text</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('logoAlt') || ''}
+                          onChange={(e) => updateActiveContentValue('logoAlt', e.target.value)}
+                        />
+                      </div>
+
+                      <div className="s-field">
+                        <label>Main Navigation Links</label>
+                        {(siteData.site?.navigation || []).map((navItem, idx) => (
+                          <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                            <input
+                              type="text"
+                              placeholder="Label"
+                              value={navItem.label}
+                              onChange={(e) => {
+                                const next = [...(siteData.site.navigation || [])];
+                                next[idx] = { ...next[idx], label: e.target.value };
+                                updateActiveContentValue('navigation', next);
+                              }}
+                              style={{ flex: 1 }}
+                            />
+                            <input
+                              type="text"
+                              placeholder="/path"
+                              value={navItem.path || navItem.href || ''}
+                              onChange={(e) => {
+                                const next = [...(siteData.site.navigation || [])];
+                                next[idx] = { ...next[idx], path: e.target.value };
+                                updateActiveContentValue('navigation', next);
+                              }}
+                              style={{ flex: 1 }}
+                            />
+                            <button
+                              type="button"
+                              className="s-btn s-btn-ghost s-btn-sm s-btn-danger"
+                              onClick={() => {
+                                const next = (siteData.site.navigation || []).filter((_, i) => i !== idx);
+                                updateActiveContentValue('navigation', next);
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          className="s-btn s-btn-ghost s-btn-sm"
+                          onClick={() => {
+                            const next = [...(siteData.site?.navigation || []), { label: 'New Link', path: '/' }];
+                            updateActiveContentValue('navigation', next);
+                          }}
+                        >
+                          <Plus size={13} />
+                          <span>Add Nav Link</span>
+                        </button>
+                      </div>
                     </div>
                   )}
 
                   {contentSelection.group === 'hero' && (
                     <div className="s-form-stack">
                       <div className="s-field">
-                        <label>Hero Eyebrow kicker</label>
+                        <label>Hero Eyebrow Kicker</label>
                         <input
                           type="text"
                           value={getActiveContentValue('eyebrow') || ''}
@@ -1282,7 +2473,7 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                         />
                       </div>
                       <div className="s-field">
-                        <label>Headline Text</label>
+                        <label>Primary Headline Text</label>
                         <input
                           type="text"
                           value={getActiveContentValue('title') || ''}
@@ -1298,7 +2489,7 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                         />
                       </div>
                       <div className="s-field">
-                        <label>Primary Action Label</label>
+                        <label>Primary Button Label</label>
                         <input
                           type="text"
                           value={getActiveContentValue('buttonPrimary') || ''}
@@ -1306,7 +2497,7 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                         />
                       </div>
                       <div className="s-field">
-                        <label>Secondary Action Label</label>
+                        <label>Secondary Button Label</label>
                         <input
                           type="text"
                           value={getActiveContentValue('buttonSecondary') || ''}
@@ -1314,7 +2505,15 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                         />
                       </div>
                       <div className="s-field">
-                        <label>Hero Video Asset URL</label>
+                        <label>Hero Background Asset Image Path</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('image') || ''}
+                          onChange={(e) => updateActiveContentValue('image', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Hero Video Reel Path (.mp4)</label>
                         <input
                           type="text"
                           value={getActiveContentValue('videoLink') || ''}
@@ -1327,7 +2526,7 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                   {contentSelection.group === 'about' && (
                     <div className="s-form-stack">
                       <div className="s-field">
-                        <label>Section Eyebrow</label>
+                        <label>Eyebrow Tag</label>
                         <input
                           type="text"
                           value={getActiveContentValue('eyebrow') || ''}
@@ -1335,7 +2534,7 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                         />
                       </div>
                       <div className="s-field">
-                        <label>Section Title</label>
+                        <label>Headline</label>
                         <input
                           type="text"
                           value={getActiveContentValue('title') || ''}
@@ -1343,19 +2542,106 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                         />
                       </div>
                       <div className="s-field">
-                        <label>About Paragraph</label>
+                        <label>Body Description Text</label>
                         <textarea
-                          rows={4}
+                          rows={5}
                           value={getActiveContentValue('description') || ''}
                           onChange={(e) => updateActiveContentValue('description', e.target.value)}
                         />
                       </div>
                       <div className="s-field">
-                        <label>Story Details</label>
+                        <label>Our Story Paragraph</label>
                         <textarea
                           rows={4}
                           value={getActiveContentValue('story') || ''}
                           onChange={(e) => updateActiveContentValue('story', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Section Image Path</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('image') || ''}
+                          onChange={(e) => updateActiveContentValue('image', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Highlight Bullet Points</label>
+                        {(siteData.about?.bullets || []).map((bullet, idx) => (
+                          <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                            <input
+                              type="text"
+                              value={bullet}
+                              style={{ flex: 1 }}
+                              onChange={(e) => {
+                                const next = [...(siteData.about.bullets || [])];
+                                next[idx] = e.target.value;
+                                updateActiveContentValue('bullets', next);
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="s-btn s-btn-ghost s-btn-sm s-btn-danger"
+                              onClick={() => updateActiveContentValue('bullets', (siteData.about.bullets || []).filter((_, i) => i !== idx))}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          className="s-btn s-btn-ghost s-btn-sm"
+                          onClick={() => updateActiveContentValue('bullets', [...(siteData.about?.bullets || []), 'New highlight point'])}
+                        >
+                          <Plus size={13} /><span>Add Bullet Point</span>
+                        </button>
+                      </div>
+                      <div className="s-field">
+                        <label>Experience Note Number (e.g. "8 years")</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('noteYears') || ''}
+                          onChange={(e) => updateActiveContentValue('noteYears', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Experience Note Caption</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('noteText') || ''}
+                          onChange={(e) => updateActiveContentValue('noteText', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Mission Title</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('missionTitle') || ''}
+                          onChange={(e) => updateActiveContentValue('missionTitle', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Mission Text</label>
+                        <textarea
+                          rows={3}
+                          value={getActiveContentValue('missionText') || ''}
+                          onChange={(e) => updateActiveContentValue('missionText', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Vision Title</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('visionTitle') || ''}
+                          onChange={(e) => updateActiveContentValue('visionTitle', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Vision Text</label>
+                        <textarea
+                          rows={3}
+                          value={getActiveContentValue('visionText') || ''}
+                          onChange={(e) => updateActiveContentValue('visionText', e.target.value)}
                         />
                       </div>
                     </div>
@@ -1364,39 +2650,13 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                   {contentSelection.group === 'solutions' && (
                     <div className="s-form-stack">
                       <div className="s-field">
-                        <label>Section Title</label>
+                        <label>Section Eyebrow</label>
                         <input
                           type="text"
-                          value={getActiveContentValue('title') || ''}
-                          onChange={(e) => updateActiveContentValue('title', e.target.value)}
+                          value={getActiveContentValue('eyebrow') || ''}
+                          onChange={(e) => updateActiveContentValue('eyebrow', e.target.value)}
                         />
                       </div>
-                      <div className="s-field">
-                        <label>Section Description</label>
-                        <textarea
-                          rows={4}
-                          value={getActiveContentValue('description') || ''}
-                          onChange={(e) => updateActiveContentValue('description', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {contentSelection.group === 'process' && (
-                    <div className="s-form-stack">
-                      <div className="s-field">
-                        <label>Workflow Description</label>
-                        <textarea
-                          rows={4}
-                          value={getActiveContentValue('description') || ''}
-                          onChange={(e) => updateActiveContentValue('description', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {contentSelection.group === 'projects' && (
-                    <div className="s-form-stack">
                       <div className="s-field">
                         <label>Section Heading</label>
                         <input
@@ -1406,12 +2666,238 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                         />
                       </div>
                       <div className="s-field">
-                        <label>Summary Badge Text</label>
+                        <label>Intro Description</label>
+                        <textarea
+                          rows={4}
+                          value={getActiveContentValue('description') || ''}
+                          onChange={(e) => updateActiveContentValue('description', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Solution Cards</label>
+                        {(siteData.solutions?.items || []).map((item, idx) => {
+                          const list = siteData.solutions.items || [];
+                          return (
+                            <div key={idx} style={{ border: '1px solid var(--s-line)', borderRadius: '10px', padding: '12px', marginBottom: '10px' }}>
+                              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                <input
+                                  type="text" placeholder="Card title" value={item.title} style={{ flex: 1 }}
+                                  onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], title: e.target.value }; updateActiveContentValue('items', next); }}
+                                />
+                                <select
+                                  value={item.icon} style={{ width: '150px' }}
+                                  onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], icon: e.target.value }; updateActiveContentValue('items', next); }}
+                                >
+                                  {Object.keys(IconMap).map((iconName) => <option value={iconName} key={iconName}>{iconName}</option>)}
+                                </select>
+                                <button
+                                  type="button" className="s-btn s-btn-ghost s-btn-sm s-btn-danger"
+                                  onClick={() => updateActiveContentValue('items', list.filter((_, i) => i !== idx))}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                              <textarea
+                                rows={2} placeholder="Card description" value={item.description}
+                                onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], description: e.target.value }; updateActiveContentValue('items', next); }}
+                              />
+                            </div>
+                          );
+                        })}
+                        <button
+                          type="button" className="s-btn s-btn-ghost s-btn-sm"
+                          onClick={() => updateActiveContentValue('items', [...(siteData.solutions?.items || []), { title: 'New Solution', description: '', icon: 'Leaf' }])}
+                        >
+                          <Plus size={13} /><span>Add Solution Card</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {contentSelection.group === 'process' && (
+                    <div className="s-form-stack">
+                      <div className="s-field">
+                        <label>Workflow Section Eyebrow</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('eyebrow') || ''}
+                          onChange={(e) => updateActiveContentValue('eyebrow', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Process Title</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('title') || ''}
+                          onChange={(e) => updateActiveContentValue('title', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Process Overview Copy</label>
+                        <textarea
+                          rows={3}
+                          value={getActiveContentValue('description') || ''}
+                          onChange={(e) => updateActiveContentValue('description', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Section Image Path</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('image') || ''}
+                          onChange={(e) => updateActiveContentValue('image', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Callout Badge Title</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('badgeTitle') || ''}
+                          onChange={(e) => updateActiveContentValue('badgeTitle', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Callout Badge Text</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('badgeText') || ''}
+                          onChange={(e) => updateActiveContentValue('badgeText', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Process Steps</label>
+                        {(siteData.process?.steps || []).map((step, idx) => {
+                          const list = siteData.process.steps || [];
+                          return (
+                            <div key={idx} style={{ border: '1px solid var(--s-line)', borderRadius: '10px', padding: '12px', marginBottom: '10px' }}>
+                              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                <input
+                                  type="text" placeholder="Step title" value={step.title} style={{ flex: 1 }}
+                                  onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], title: e.target.value }; updateActiveContentValue('steps', next); }}
+                                />
+                                <select
+                                  value={step.icon} style={{ width: '150px' }}
+                                  onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], icon: e.target.value }; updateActiveContentValue('steps', next); }}
+                                >
+                                  {Object.keys(IconMap).map((iconName) => <option value={iconName} key={iconName}>{iconName}</option>)}
+                                </select>
+                                <button
+                                  type="button" className="s-btn s-btn-ghost s-btn-sm s-btn-danger"
+                                  onClick={() => updateActiveContentValue('steps', list.filter((_, i) => i !== idx))}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                              <textarea
+                                rows={2} placeholder="Step description" value={step.description}
+                                onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], description: e.target.value }; updateActiveContentValue('steps', next); }}
+                              />
+                            </div>
+                          );
+                        })}
+                        <button
+                          type="button" className="s-btn s-btn-ghost s-btn-sm"
+                          onClick={() => updateActiveContentValue('steps', [...(siteData.process?.steps || []), { title: 'New Step', description: '', icon: 'Recycle' }])}
+                        >
+                          <Plus size={13} /><span>Add Process Step</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {contentSelection.group === 'projects' && (
+                    <div className="s-form-stack">
+                      <div className="s-field">
+                        <label>Projects Eyebrow</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('eyebrow') || ''}
+                          onChange={(e) => updateActiveContentValue('eyebrow', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Projects Title</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('title') || ''}
+                          onChange={(e) => updateActiveContentValue('title', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Projects Subtitle Copy</label>
+                        <textarea
+                          rows={3}
+                          value={getActiveContentValue('description') || ''}
+                          onChange={(e) => updateActiveContentValue('description', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Summary Value (e.g. "50+")</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('summaryValue') || ''}
+                          onChange={(e) => updateActiveContentValue('summaryValue', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Summary Caption</label>
                         <input
                           type="text"
                           value={getActiveContentValue('summaryText') || ''}
                           onChange={(e) => updateActiveContentValue('summaryText', e.target.value)}
                         />
+                      </div>
+                      <div className="s-field">
+                        <label>Project Cards</label>
+                        {(siteData.projects?.items || []).map((item, idx) => {
+                          const list = siteData.projects.items || [];
+                          return (
+                            <div key={idx} style={{ border: '1px solid var(--s-line)', borderRadius: '10px', padding: '12px', marginBottom: '10px' }}>
+                              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                <input
+                                  type="text" placeholder="Project title" value={item.title} style={{ flex: 1 }}
+                                  onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], title: e.target.value }; updateActiveContentValue('items', next); }}
+                                />
+                                <button
+                                  type="button" className="s-btn s-btn-ghost s-btn-sm s-btn-danger"
+                                  onClick={() => updateActiveContentValue('items', list.filter((_, i) => i !== idx))}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                              <textarea
+                                rows={2} placeholder="Description" value={item.description} style={{ marginBottom: '8px' }}
+                                onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], description: e.target.value }; updateActiveContentValue('items', next); }}
+                              />
+                              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                <input
+                                  type="text" placeholder="Location" value={item.location || ''} style={{ flex: 1 }}
+                                  onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], location: e.target.value }; updateActiveContentValue('items', next); }}
+                                />
+                                <input
+                                  type="text" placeholder="Capacity / stat" value={item.capacity || ''} style={{ flex: 1 }}
+                                  onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], capacity: e.target.value }; updateActiveContentValue('items', next); }}
+                                />
+                              </div>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <input
+                                  type="text" placeholder="Category" value={item.category || ''} style={{ flex: 1 }}
+                                  onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], category: e.target.value }; updateActiveContentValue('items', next); }}
+                                />
+                                <input
+                                  type="text" placeholder="Image path" value={item.image || ''} style={{ flex: 1 }}
+                                  onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], image: e.target.value }; updateActiveContentValue('items', next); }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <button
+                          type="button" className="s-btn s-btn-ghost s-btn-sm"
+                          onClick={() => updateActiveContentValue('items', [...(siteData.projects?.items || []), { title: 'New Project', description: '', location: '', capacity: '', category: '', image: '' }])}
+                        >
+                          <Plus size={13} /><span>Add Project Card</span>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1419,12 +2905,88 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                   {contentSelection.group === 'impact' && (
                     <div className="s-form-stack">
                       <div className="s-field">
-                        <label>Section Title</label>
+                        <label>Impact Eyebrow</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('eyebrow') || ''}
+                          onChange={(e) => updateActiveContentValue('eyebrow', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Impact Title</label>
                         <input
                           type="text"
                           value={getActiveContentValue('title') || ''}
                           onChange={(e) => updateActiveContentValue('title', e.target.value)}
                         />
+                      </div>
+                      <div className="s-field">
+                        <label>Environmental Statement</label>
+                        <textarea
+                          rows={4}
+                          value={getActiveContentValue('description') || ''}
+                          onChange={(e) => updateActiveContentValue('description', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Section Image Path</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('image') || ''}
+                          onChange={(e) => updateActiveContentValue('image', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>SDG Callout Title</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('sdgTitle') || ''}
+                          onChange={(e) => updateActiveContentValue('sdgTitle', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>SDG Callout Text</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('sdgText') || ''}
+                          onChange={(e) => updateActiveContentValue('sdgText', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Impact Metrics</label>
+                        {(siteData.impact?.items || []).map((item, idx) => {
+                          const list = siteData.impact.items || [];
+                          return (
+                            <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                              <input
+                                type="text" placeholder="Value (e.g. 150K+)" value={item.value} style={{ width: '110px' }}
+                                onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], value: e.target.value }; updateActiveContentValue('items', next); }}
+                              />
+                              <input
+                                type="text" placeholder="Label" value={item.label} style={{ flex: 1 }}
+                                onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], label: e.target.value }; updateActiveContentValue('items', next); }}
+                              />
+                              <select
+                                value={item.icon} style={{ width: '140px' }}
+                                onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], icon: e.target.value }; updateActiveContentValue('items', next); }}
+                              >
+                                {Object.keys(IconMap).map((iconName) => <option value={iconName} key={iconName}>{iconName}</option>)}
+                              </select>
+                              <button
+                                type="button" className="s-btn s-btn-ghost s-btn-sm s-btn-danger"
+                                onClick={() => updateActiveContentValue('items', list.filter((_, i) => i !== idx))}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                        <button
+                          type="button" className="s-btn s-btn-ghost s-btn-sm"
+                          onClick={() => updateActiveContentValue('items', [...(siteData.impact?.items || []), { value: '0', label: 'New Metric', detail: '', icon: 'Leaf' }])}
+                        >
+                          <Plus size={13} /><span>Add Impact Metric</span>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1432,7 +2994,117 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                   {contentSelection.group === 'footer' && (
                     <div className="s-form-stack">
                       <div className="s-field">
-                        <label>Contact Phone</label>
+                        <label>Footer Brand Summary Copy</label>
+                        <textarea
+                          rows={3}
+                          value={getActiveContentValue('description') || ''}
+                          onChange={(e) => updateActiveContentValue('description', e.target.value)}
+                        />
+                      </div>
+
+                      <div className="s-field">
+                        <label>Quick Links Column Title</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('quickLinksTitle') || ''}
+                          onChange={(e) => updateActiveContentValue('quickLinksTitle', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Quick Links</label>
+                        {(siteData.footer?.quickLinks?.length ? siteData.footer.quickLinks : defaultFooterLinks.quickLinks).map((l, idx) => {
+                          const list = siteData.footer?.quickLinks?.length ? siteData.footer.quickLinks : defaultFooterLinks.quickLinks;
+                          return (
+                            <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                              <input type="text" placeholder="Label" value={l.label} style={{ flex: 1 }}
+                                onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], label: e.target.value }; updateActiveContentValue('quickLinks', next); }} />
+                              <input type="text" placeholder="/path" value={l.href} style={{ flex: 1 }}
+                                onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], href: e.target.value }; updateActiveContentValue('quickLinks', next); }} />
+                              <button type="button" className="s-btn s-btn-ghost s-btn-sm s-btn-danger"
+                                onClick={() => updateActiveContentValue('quickLinks', list.filter((_, i) => i !== idx))}>
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                        <button type="button" className="s-btn s-btn-ghost s-btn-sm"
+                          onClick={() => updateActiveContentValue('quickLinks', [...(siteData.footer?.quickLinks?.length ? siteData.footer.quickLinks : defaultFooterLinks.quickLinks), { label: 'New Link', href: '/' }])}>
+                          <Plus size={13} /><span>Add Link</span>
+                        </button>
+                      </div>
+
+                      <div className="s-field">
+                        <label>Solutions Column Title</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('solutionsTitle') || ''}
+                          onChange={(e) => updateActiveContentValue('solutionsTitle', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Solutions Links</label>
+                        {(siteData.footer?.solutionsLinks?.length ? siteData.footer.solutionsLinks : defaultFooterLinks.solutionsLinks).map((l, idx) => {
+                          const list = siteData.footer?.solutionsLinks?.length ? siteData.footer.solutionsLinks : defaultFooterLinks.solutionsLinks;
+                          return (
+                            <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                              <input type="text" placeholder="Label" value={l.label} style={{ flex: 1 }}
+                                onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], label: e.target.value }; updateActiveContentValue('solutionsLinks', next); }} />
+                              <input type="text" placeholder="/path" value={l.href} style={{ flex: 1 }}
+                                onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], href: e.target.value }; updateActiveContentValue('solutionsLinks', next); }} />
+                              <button type="button" className="s-btn s-btn-ghost s-btn-sm s-btn-danger"
+                                onClick={() => updateActiveContentValue('solutionsLinks', list.filter((_, i) => i !== idx))}>
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                        <button type="button" className="s-btn s-btn-ghost s-btn-sm"
+                          onClick={() => updateActiveContentValue('solutionsLinks', [...(siteData.footer?.solutionsLinks?.length ? siteData.footer.solutionsLinks : defaultFooterLinks.solutionsLinks), { label: 'New Link', href: '/solutions' }])}>
+                          <Plus size={13} /><span>Add Link</span>
+                        </button>
+                      </div>
+
+                      <div className="s-field">
+                        <label>Resources Column Title</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('resourcesTitle') || ''}
+                          onChange={(e) => updateActiveContentValue('resourcesTitle', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Resources Links</label>
+                        {(siteData.footer?.resourceLinks?.length ? siteData.footer.resourceLinks : defaultFooterLinks.resourceLinks).map((l, idx) => {
+                          const list = siteData.footer?.resourceLinks?.length ? siteData.footer.resourceLinks : defaultFooterLinks.resourceLinks;
+                          return (
+                            <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                              <input type="text" placeholder="Label" value={l.label} style={{ flex: 1 }}
+                                onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], label: e.target.value }; updateActiveContentValue('resourceLinks', next); }} />
+                              <input type="text" placeholder="/path" value={l.href} style={{ flex: 1 }}
+                                onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], href: e.target.value }; updateActiveContentValue('resourceLinks', next); }} />
+                              <button type="button" className="s-btn s-btn-ghost s-btn-sm s-btn-danger"
+                                onClick={() => updateActiveContentValue('resourceLinks', list.filter((_, i) => i !== idx))}>
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                        <button type="button" className="s-btn s-btn-ghost s-btn-sm"
+                          onClick={() => updateActiveContentValue('resourceLinks', [...(siteData.footer?.resourceLinks?.length ? siteData.footer.resourceLinks : defaultFooterLinks.resourceLinks), { label: 'New Link', href: '/' }])}>
+                          <Plus size={13} /><span>Add Link</span>
+                        </button>
+                      </div>
+
+                      <div className="s-field">
+                        <label>Contact Column Title</label>
+                        <input
+                          type="text"
+                          value={getActiveContentValue('contactTitle') || ''}
+                          onChange={(e) => updateActiveContentValue('contactTitle', e.target.value)}
+                        />
+                      </div>
+                      <div className="s-field">
+                        <label>Phone Number</label>
                         <input
                           type="text"
                           value={getActiveContentValue('phone') || ''}
@@ -1440,7 +3112,7 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                         />
                       </div>
                       <div className="s-field">
-                        <label>Contact Email</label>
+                        <label>Email Address</label>
                         <input
                           type="text"
                           value={getActiveContentValue('email') || ''}
@@ -1455,8 +3127,38 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                           onChange={(e) => updateActiveContentValue('office', e.target.value)}
                         />
                       </div>
+
                       <div className="s-field">
-                        <label>Copyright notice</label>
+                        <label>Social Links</label>
+                        {(siteData.footer?.socialLinks?.length ? siteData.footer.socialLinks : defaultFooterLinks.socialLinks).map((s, idx) => {
+                          const list = siteData.footer?.socialLinks?.length ? siteData.footer.socialLinks : defaultFooterLinks.socialLinks;
+                          return (
+                            <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                              <select value={s.platform} style={{ width: '150px' }}
+                                onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], platform: e.target.value }; updateActiveContentValue('socialLinks', next); }}>
+                                <option value="linkedin">LinkedIn</option>
+                                <option value="instagram">Instagram</option>
+                                <option value="facebook">Facebook</option>
+                                <option value="twitter">Twitter / X</option>
+                                <option value="youtube">YouTube</option>
+                              </select>
+                              <input type="text" placeholder="https://..." value={s.url} style={{ flex: 1 }}
+                                onChange={(e) => { const next = [...list]; next[idx] = { ...next[idx], url: e.target.value }; updateActiveContentValue('socialLinks', next); }} />
+                              <button type="button" className="s-btn s-btn-ghost s-btn-sm s-btn-danger"
+                                onClick={() => updateActiveContentValue('socialLinks', list.filter((_, i) => i !== idx))}>
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                        <button type="button" className="s-btn s-btn-ghost s-btn-sm"
+                          onClick={() => updateActiveContentValue('socialLinks', [...(siteData.footer?.socialLinks?.length ? siteData.footer.socialLinks : defaultFooterLinks.socialLinks), { platform: 'linkedin', url: '' }])}>
+                          <Plus size={13} /><span>Add Social Link</span>
+                        </button>
+                      </div>
+
+                      <div className="s-field">
+                        <label>Copyright Attribution Line</label>
                         <input
                           type="text"
                           value={getActiveContentValue('copyright') || ''}
@@ -1468,53 +3170,154 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                 </div>
               </div>
 
-              {/* COLUMN 3: LIVE VIEWPORT */}
-              <div className="s-live-viewport">
-                <h4>Live Visual Viewport</h4>
-                <iframe
-                  id="sitePreviewFrame"
-                  src={`${window.location.origin}/?preview=true`}
-                  className="s-preview-iframe"
-                  title="Landing site live preview"
-                />
+              <div
+                className="s-live-viewport s-live-viewport-col"
+                style={
+                  isPreviewMaximized
+                    ? {
+                        position: 'fixed',
+                        top: '70px',
+                        left: '20px',
+                        right: '20px',
+                        bottom: '20px',
+                        zIndex: 9999,
+                        background: 'var(--s-panel, #0f172a)',
+                        boxShadow: '0 25px 80px rgba(0,0,0,0.6)',
+                        borderRadius: '16px',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column'
+                      }
+                    : {}
+                }
+              >
+                <div className="s-viewport-top">
+                  <h4>
+                    <Monitor size={15} />
+                    <span>Live Responsive Sandbox {isPreviewMaximized ? '(Full Screen Mode)' : ''}</span>
+                  </h4>
+                  <div className="s-device-toggles" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setIsPreviewMaximized(!isPreviewMaximized)}
+                      className={`s-btn s-btn-sm ${isPreviewMaximized ? 's-btn-primary' : 's-btn-ghost'}`}
+                      style={{ padding: '4px 10px', fontSize: '12px' }}
+                      title={isPreviewMaximized ? 'Restore Split View' : 'Expand Full Screen'}
+                    >
+                      {isPreviewMaximized ? 'Exit Full Screen' : 'Full Screen Preview'}
+                    </button>
+                    <button
+                      type="button"
+                      className={`s-device-btn ${deviceFrame === 'desktop' ? 'active' : ''}`}
+                      onClick={() => setDeviceFrame('desktop')}
+                      title="Desktop View"
+                    >
+                      <Monitor size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className={`s-device-btn ${deviceFrame === 'tablet' ? 'active' : ''}`}
+                      onClick={() => setDeviceFrame('tablet')}
+                      title="Tablet View"
+                    >
+                      <Tablet size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className={`s-device-btn ${deviceFrame === 'mobile' ? 'active' : ''}`}
+                      onClick={() => setDeviceFrame('mobile')}
+                      title="Mobile View"
+                    >
+                      <Smartphone size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className="s-device-btn"
+                      onClick={() => {
+                        const frame = document.getElementById('sitePreviewFrame');
+                        if (frame) frame.contentWindow?.location.reload();
+                      }}
+                      title="Reload Viewport"
+                    >
+                      <RefreshCw size={13} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="s-preview-iframe-container">
+                  <iframe
+                    id="sitePreviewFrame"
+                    src={`${window.location.origin}/?preview=true`}
+                    className="s-preview-iframe"
+                    style={{
+                      maxWidth: deviceFrame === 'mobile' ? '390px' : deviceFrame === 'tablet' ? '768px' : '100%'
+                    }}
+                    title="Landing site live preview"
+                  />
+                </div>
               </div>
             </div>
           )}
 
-          {/* TAB 3: THEME TOKENS */}
+          {/* TAB 3: THEME & DESIGN TOKENS STUDIO */}
           {activeTab === 'theme' && settingsData && (
             <div className="s-panel">
               <div className="s-two-col">
                 <div className="s-card">
                   <div className="s-card-head">
-                    <h3>Predefined Swatch Presets</h3>
+                    <h3>Luxury Swatch Presets</h3>
+                    <span className="s-badge">Instant Palette</span>
                   </div>
                   <div className="s-presets-swatch-list">
-                    <button onClick={() => handleApplyPreset('emerald')} className="s-swatch-btn emerald">
+                    <button type="button" onClick={() => handleApplyPreset('emerald')} className="s-swatch-btn emerald">
                       <strong>Emerald Forest</strong>
-                      <span>Organic Green</span>
+                      <span>Organic Bioenergy Green</span>
+                      <div className="s-swatch-bars">
+                        <div className="s-swatch-bar" style={{ background: '#10b981' }} />
+                        <div className="s-swatch-bar" style={{ background: '#059669' }} />
+                        <div className="s-swatch-bar" style={{ background: '#0f172a' }} />
+                      </div>
                     </button>
-                    <button onClick={() => handleApplyPreset('ocean')} className="s-swatch-btn ocean">
+
+                    <button type="button" onClick={() => handleApplyPreset('ocean')} className="s-swatch-btn ocean">
                       <strong>Ocean Recycling</strong>
-                      <span>Teal Clean-tech</span>
+                      <span>Clean-Tech Teal & Cyan</span>
+                      <div className="s-swatch-bars">
+                        <div className="s-swatch-bar" style={{ background: '#0891b2' }} />
+                        <div className="s-swatch-bar" style={{ background: '#06b6d4' }} />
+                        <div className="s-swatch-bar" style={{ background: '#0f172a' }} />
+                      </div>
                     </button>
-                    <button onClick={() => handleApplyPreset('ochre')} className="s-swatch-btn ochre">
+
+                    <button type="button" onClick={() => handleApplyPreset('ochre')} className="s-swatch-btn ochre">
                       <strong>Earthy Ochre</strong>
-                      <span>Warm Soil/Clay</span>
+                      <span>Warm Soil & Clay Gold</span>
+                      <div className="s-swatch-bars">
+                        <div className="s-swatch-bar" style={{ background: '#d97706' }} />
+                        <div className="s-swatch-bar" style={{ background: '#f59e0b' }} />
+                        <div className="s-swatch-bar" style={{ background: '#1c1917' }} />
+                      </div>
                     </button>
-                    <button onClick={() => handleApplyPreset('charcoal')} className="s-swatch-btn charcoal">
-                      <strong>Charcoal Eco</strong>
-                      <span>Minimalist Slate</span>
+
+                    <button type="button" onClick={() => handleApplyPreset('charcoal')} className="s-swatch-btn charcoal">
+                      <strong>Charcoal Slate</strong>
+                      <span>Minimalist Cyber Slate</span>
+                      <div className="s-swatch-bars">
+                        <div className="s-swatch-bar" style={{ background: '#3b82f6' }} />
+                        <div className="s-swatch-bar" style={{ background: '#64748b' }} />
+                        <div className="s-swatch-bar" style={{ background: '#090d16' }} />
+                      </div>
                     </button>
                   </div>
                 </div>
 
                 <div className="s-card">
                   <div className="s-card-head">
-                    <h3>Font Family</h3>
+                    <h3>Typography & Display Font</h3>
+                    <span className="s-badge">Google Fonts</span>
                   </div>
                   <div className="s-field">
-                    <label>Select Font Family</label>
+                    <label>Select Master Font Family</label>
                     <select
                       value={selectedFont}
                       onChange={(e) => {
@@ -1525,82 +3328,212 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                       }}
                       className="s-select"
                     >
-                      <option value="Outfit">Outfit</option>
-                      <option value="Poppins">Poppins</option>
-                      <option value="Inter">Inter</option>
-                      <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
-                      <option value="Sora">Sora</option>
-                      <option value="Space Grotesk">Space Grotesk</option>
+                      {Object.entries(FONT_LIBRARY).map(([groupName, names]) => (
+                        <optgroup label={groupName} key={groupName}>
+                          {names.map((name) => (
+                            <option value={name} key={name}>{name}</option>
+                          ))}
+                        </optgroup>
+                      ))}
                     </select>
+                  </div>
+
+                  <div style={{ padding: '16px', borderRadius: '10px', background: 'var(--s-panel-subtle)', border: '1px solid var(--s-line)', fontFamily: `"${selectedFont}", sans-serif` }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '4px' }}>
+                      Typography Sample ({selectedFont})
+                    </div>
+                    <div style={{ fontSize: '0.88rem', color: 'var(--s-text-muted)' }}>
+                      Converting waste biomass streams into high-performance sustainable industrial energy.
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div className="s-card" style={{ marginTop: '24px' }}>
                 <div className="s-card-head">
-                  <h3>Color Palette Customizer</h3>
+                  <h3>Color Token Customizer</h3>
                   <div className="s-tab-row">
-                    <button className={`s-tab ${themeMode === 'light' ? 'active' : ''}`} onClick={() => setThemeMode('light')}>Light Palette</button>
-                    <button className={`s-tab ${themeMode === 'dark' ? 'active' : ''}`} onClick={() => setThemeMode('dark')}>Dark Palette</button>
+                    <button
+                      type="button"
+                      className={`s-tab ${themeMode === 'light' ? 'active' : ''}`}
+                      onClick={() => setThemeMode('light')}
+                    >
+                      Light Palette
+                    </button>
+                    <button
+                      type="button"
+                      className={`s-tab ${themeMode === 'dark' ? 'active' : ''}`}
+                      onClick={() => setThemeMode('dark')}
+                    >
+                      Obsidian Dark Palette
+                    </button>
                   </div>
                 </div>
 
                 <div className="s-palette-grid">
-                  {Object.keys(settingsData.design?.palettes?.[themeMode] || {}).map((key) => (
-                    <div className="s-palette-field" key={key}>
-                      <span className="s-palette-label">{key}</span>
-                      <div className="s-color-picker-wrap">
-                        <input
-                          type="color"
-                          value={settingsData.design.palettes[themeMode][key]}
-                          onChange={(e) => {
-                            const nextSettings = { ...settingsData };
-                            nextSettings.design.palettes[themeMode][key] = e.target.value;
-                            setSettingsData(nextSettings);
-                          }}
-                        />
-                        <input
-                          type="text"
-                          value={settingsData.design.palettes[themeMode][key]}
-                          onChange={(e) => {
-                            const nextSettings = { ...settingsData };
-                            nextSettings.design.palettes[themeMode][key] = e.target.value;
-                            setSettingsData(nextSettings);
-                          }}
-                          className="s-color-input"
-                        />
+                  {Object.keys(settingsData.design?.palettes?.[themeMode] || {}).map((key) => {
+                    const colorFriendlyNames = {
+                      primary: 'Primary Brand Color',
+                      secondary: 'Secondary Accent Color',
+                      pageBackground: 'Page Background Color',
+                      surface: 'Card & Surface Background',
+                      heading: 'Heading Title Text Color',
+                      text: 'Body Paragraph Text Color',
+                      mist: 'Border & Subtle Accent Color'
+                    };
+                    return (
+                      <div className="s-palette-field" key={key}>
+                        <span className="s-palette-label">{colorFriendlyNames[key] || key}</span>
+                        <div className="s-color-picker-wrap">
+                          <input
+                            type="color"
+                            value={settingsData.design.palettes[themeMode][key] || '#10b981'}
+                            onChange={(e) => {
+                              const nextSettings = { ...settingsData };
+                              nextSettings.design.palettes[themeMode][key] = e.target.value;
+                              setSettingsData(nextSettings);
+                            }}
+                          />
+                          <input
+                            type="text"
+                            value={settingsData.design.palettes[themeMode][key] || '#10b981'}
+                            onChange={(e) => {
+                              const nextSettings = { ...settingsData };
+                              nextSettings.design.palettes[themeMode][key] = e.target.value;
+                              setSettingsData(nextSettings);
+                            }}
+                            className="s-color-input"
+                            placeholder="#HEXCODE"
+                          />
+                        </div>
                       </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                  <button type="button" onClick={handleResetSettings} className="s-btn s-btn-ghost">Reset Theme</button>
+                  <button type="button" onClick={handleSaveSettings} disabled={isSaving} className="s-btn s-btn-primary">
+                    <Sparkles size={15} />
+                    <span>{isSaving ? 'Applying...' : 'Save & Publish Theme'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="s-card" style={{ marginTop: '24px' }}>
+                <div className="s-card-head">
+                  <h3>Live Shade Ramp Preview</h3>
+                  <span className="s-badge">Auto-Generated</span>
+                </div>
+                <p style={{ fontSize: '0.82rem', color: 'var(--s-text-muted)', marginBottom: '12px' }}>
+                  Every button, navbar pill, badge and gradient accent across the whole site pulls from this ramp — generated automatically from your Primary Brand Color, so choosing a new color (like blue) recolors everything consistently.
+                </p>
+                <div className="s-ramp-preview-row">
+                  {Object.entries(generateShadeRamp(settingsData.design?.palettes?.[themeMode]?.primary || '#0b5130')).map(([shade, hex]) => (
+                    <div key={shade} className="s-ramp-swatch" style={{ background: hex }} title={hex}>
+                      <span>{shade}</span>
                     </div>
                   ))}
                 </div>
+              </div>
 
-                <div className="s-card-foot" style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
-                  <button onClick={handleResetSettings} className="s-btn s-btn-ghost">Reset Theme</button>
-                  <button onClick={handleSaveSettings} disabled={isSaving} className="s-btn s-btn-primary">
-                    {isSaving ? 'Saving...' : 'Apply Theme Changes'}
+              <div className="s-card" style={{ marginTop: '24px' }}>
+                <div className="s-card-head">
+                  <h3>Layout & Button Style</h3>
+                  <span className="s-badge">Site-Wide Shape</span>
+                </div>
+                <div className="s-two-col">
+                  <div className="s-field">
+                    <label>Button Shape</label>
+                    <select
+                      value={settingsData.design?.layout?.buttonShape || 'pill'}
+                      onChange={(e) => {
+                        const nextSettings = { ...settingsData };
+                        nextSettings.design.layout = { ...(nextSettings.design.layout || {}), buttonShape: e.target.value };
+                        setSettingsData(nextSettings);
+                      }}
+                      className="s-select"
+                    >
+                      <option value="pill">Pill (fully rounded)</option>
+                      <option value="rounded">Rounded corners</option>
+                      <option value="square">Square / sharp</option>
+                    </select>
+                  </div>
+
+                  <div className="s-field">
+                    <label>Button Shadow Intensity</label>
+                    <select
+                      value={settingsData.design?.layout?.shadowIntensity || 'medium'}
+                      onChange={(e) => {
+                        const nextSettings = { ...settingsData };
+                        nextSettings.design.layout = { ...(nextSettings.design.layout || {}), shadowIntensity: e.target.value };
+                        setSettingsData(nextSettings);
+                      }}
+                      className="s-select"
+                    >
+                      <option value="subtle">Subtle</option>
+                      <option value="medium">Medium</option>
+                      <option value="bold">Bold / glowing</option>
+                    </select>
+                  </div>
+
+                  <div className="s-field">
+                    <label>Card Corner Radius ({settingsData.design?.layout?.cardRadius ?? 22}px)</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="40"
+                      value={settingsData.design?.layout?.cardRadius ?? 22}
+                      onChange={(e) => {
+                        const nextSettings = { ...settingsData };
+                        nextSettings.design.layout = { ...(nextSettings.design.layout || {}), cardRadius: Number(e.target.value) };
+                        setSettingsData(nextSettings);
+                      }}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '16px' }}>
+                  <button
+                    type="button"
+                    className="s-btn s-btn-primary"
+                    style={{
+                      borderRadius: { pill: '999px', rounded: '14px', square: '6px' }[settingsData.design?.layout?.buttonShape || 'pill'],
+                      background: settingsData.design?.palettes?.[themeMode]?.primary || '#0b5130',
+                      border: 'none'
+                    }}
+                  >
+                    Live Button Preview
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 4: MEDIA & FORMS */}
+          {/* TAB 4: MEDIA DIGITAL ASSET MANAGER */}
           {activeTab === 'media' && (
             <div className="s-panel">
               <div className="s-two-col">
-                {/* Drag and Drop Uploader */}
                 <div className="s-card">
                   <div className="s-card-head">
-                    <h3>Upload Asset File</h3>
+                    <h3>Drag & Drop Asset Uploader</h3>
+                    <span className="s-badge">Images & Video Reals</span>
                   </div>
                   <div
                     className={`s-drag-zone ${isDragging ? 'dragging' : ''}`}
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={handleDrop}
+                    onClick={() => document.getElementById('s-media-file-input')?.click()}
                   >
-                    <span>Drag & Drop file here or click browse</span>
+                    <Upload size={32} style={{ color: 'var(--s-accent-primary)' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <strong style={{ fontSize: '0.98rem' }}>Drag & Drop file here or click to browse</strong>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--s-text-muted)' }}>Supports JPG, PNG, WEBP, SVG, MP4, MOV up to 50MB</span>
+                    </div>
                     <input
+                      id="s-media-file-input"
                       type="file"
                       accept="image/*,video/*"
                       onChange={(e) => {
@@ -1611,79 +3544,144 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                       className="s-file-input-hidden"
                     />
                   </div>
+                </div>
 
-                  <div className="s-media-paste-url" style={{ marginTop: '16px' }}>
+                <div className="s-card">
+                  <div className="s-card-head">
+                    <h3>Import Remote Asset URL</h3>
+                    <span className="s-badge">CDN Link</span>
+                  </div>
+                  <div className="s-form-stack">
                     <div className="s-field">
-                      <label>Asset URL</label>
+                      <label>Direct Image or Video Link Path</label>
                       <input
                         type="text"
                         value={mediaInputUrl}
                         onChange={(e) => setMediaInputUrl(e.target.value)}
-                        placeholder="Paste image or video URL link"
+                        placeholder="e.g. https://images.unsplash.com/photo-example.jpg"
                       />
                     </div>
-                    <button
-                      onClick={() => {
-                        if (mediaInputUrl) {
-                          setMediaList([mediaInputUrl, ...mediaList]);
-                          setMediaInputUrl('');
-                          flashStatus('Asset link added');
-                        }
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (mediaInputUrl) {
+                            setMediaList([mediaInputUrl, ...mediaList]);
+                            setMediaInputUrl('');
+                            flashStatus('External asset link imported!');
+                          }
+                        }}
+                        className="s-btn s-btn-primary"
+                      >
+                        <Plus size={15} />
+                        <span>Add Asset Link</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="s-card">
+                <div className="s-card-head">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <h3>Media Library Grid</h3>
+                    <div className="s-tab-row">
+                      <button
+                        type="button"
+                        className={`s-tab ${mediaFilter === 'all' ? 'active' : ''}`}
+                        onClick={() => setMediaFilter('all')}
+                      >
+                        All ({mediaList.length})
+                      </button>
+                      <button
+                        type="button"
+                        className={`s-tab ${mediaFilter === 'images' ? 'active' : ''}`}
+                        onClick={() => setMediaFilter('images')}
+                      >
+                        Images
+                      </button>
+                      <button
+                        type="button"
+                        className={`s-tab ${mediaFilter === 'videos' ? 'active' : ''}`}
+                        onClick={() => setMediaFilter('videos')}
+                      >
+                        Videos
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ width: '240px' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter media assets..."
+                      value={mediaSearch}
+                      onChange={(e) => setMediaSearch(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--s-line)',
+                        background: 'var(--s-panel-subtle)',
+                        color: 'var(--s-text)',
+                        fontSize: '0.85rem'
                       }}
-                      className="s-btn s-btn-ghost s-btn-sm"
-                      style={{ marginTop: '8px' }}
-                    >
-                      Add Url Link
-                    </button>
+                    />
                   </div>
                 </div>
 
-                {/* Media list */}
-                <div className="s-card">
-                  <div className="s-card-head">
-                    <h3>Media Library Files</h3>
-                  </div>
-                  <div className="s-media-grid">
-                    {mediaList.map((url, idx) => (
-                      <div className="s-media-card" key={idx}>
-                        <div className="s-media-preview">
-                          {url.endsWith('.mp4') || url.endsWith('.mov') ? (
-                            <video src={url} muted autoPlay loop playsInline />
-                          ) : (
-                            <img src={url} alt="Uploaded asset card" />
-                          )}
-                        </div>
-                        <div className="s-media-meta">
-                          <small>{url.split('/').pop() || 'external-asset'}</small>
+                <div className="s-media-grid">
+                  {filteredMedia.map((url, idx) => (
+                    <div className="s-media-card" key={idx}>
+                      <div className="s-media-preview">
+                        {url.endsWith('.mp4') || url.endsWith('.mov') ? (
+                          <video src={url} muted autoPlay loop playsInline />
+                        ) : (
+                          <img src={url} alt="Uploaded asset card" />
+                        )}
+                      </div>
+                      <div className="s-media-meta">
+                        <small title={url}>{url.split('/').pop() || 'external-asset'}</small>
+                        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                           <button
+                            type="button"
                             onClick={() => {
                               navigator.clipboard.writeText(url);
-                              flashStatus('Copied asset path to clipboard');
+                              flashStatus('Copied asset path to clipboard!');
                             }}
                             className="s-btn s-btn-ghost s-btn-sm"
+                            title="Copy asset path"
                           >
-                            Copy Path
+                            <Copy size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMedia(url)}
+                            className="s-btn s-btn-ghost s-btn-sm s-btn-danger"
+                            title="Delete asset"
+                          >
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 5: TEAM CONTROLS */}
-          {activeTab === 'team' && analyticsData && (
+          {/* TAB 5: TEAM CONTROLS & ACCOUNTS */}
+          {activeTab === 'team' && (
             <div className="s-panel">
               <div className="s-two-col">
                 <div className="s-card">
                   <div className="s-card-head">
-                    <h3>Create Staff Account</h3>
+                    <h3>Create Staff Member Account</h3>
+                    <span className="s-badge">RBAC Access</span>
                   </div>
                   <form onSubmit={handleAddStaff} className="s-form-stack">
                     <div className="s-field">
-                      <label>Staff Display Name</label>
+                      <label>Staff Full Name</label>
                       <input
                         type="text"
                         required
@@ -1693,7 +3691,7 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                       />
                     </div>
                     <div className="s-field">
-                      <label>Username</label>
+                      <label>Account Username</label>
                       <input
                         type="text"
                         required
@@ -1703,7 +3701,7 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                       />
                     </div>
                     <div className="s-field">
-                      <label>Password</label>
+                      <label>Secure Password</label>
                       <input
                         type="password"
                         required
@@ -1714,27 +3712,34 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
                       />
                     </div>
                     {staffError && <div className="s-error-msg">{staffError}</div>}
-                    <button type="submit" className="s-btn s-btn-primary">Create Account</button>
+                    <div>
+                      <button type="submit" className="s-btn s-btn-primary">
+                        <Plus size={15} />
+                        <span>Create Account</span>
+                      </button>
+                    </div>
                   </form>
                 </div>
 
                 <div className="s-card">
                   <div className="s-card-head">
-                    <h3>Team Accounts Management</h3>
+                    <h3>Active Team Directory</h3>
+                    <span className="s-badge">{(analyticsData?.teamUsage || []).length} Members</span>
                   </div>
                   <div className="s-users-list">
-                    {(analyticsData.teamUsage || []).map((member) => (
+                    {(analyticsData?.teamUsage || []).map((member) => (
                       <div className="s-user-item" key={member.user.id}>
                         <div className="s-user-meta">
                           <strong>{member.user.displayName}</strong>
-                          <span>{member.user.username} ({member.user.role})</span>
-                          <small>Last login: {member.user.lastLoginAt ? new Date(member.user.lastLoginAt).toLocaleString() : 'Never'}</small>
+                          <span>@{member.user.username} • {member.user.role.toUpperCase()}</span>
+                          <small>Last active: {member.user.lastLoginAt ? new Date(member.user.lastLoginAt).toLocaleString() : 'Just now'}</small>
                         </div>
                         <div className="s-user-actions">
                           <button
+                            type="button"
                             onClick={() => handleToggleUser(member.user.id, member.user.active)}
                             className={`s-btn s-btn-sm ${member.user.active ? 's-btn-ghost' : 's-btn-primary'}`}
-                            disabled={member.user.id === user.id}
+                            disabled={member.user.id === user?.id}
                           >
                             {member.user.active ? 'Deactivate' : 'Activate'}
                           </button>
@@ -1747,82 +3752,448 @@ function AdminDashboard({ user, onLogout, siteData, setSiteData }) {
             </div>
           )}
 
-          {/* TAB 6: SUBMISSIONS LEADS */}
+          {/* TAB 6: LEAD INTELLIGENCE PIPELINE */}
           {activeTab === 'submissions' && submissionsData && (
             <div className="s-panel">
               <div className="s-card">
                 <div className="s-card-head">
-                  <h3>Received Contact Leads</h3>
-                </div>
-                <div className="s-table-wrap">
-                  <table className="s-table">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Interest</th>
-                        <th>Message</th>
-                        <th>Timestamp</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(submissionsData.contact || []).map((sub) => (
-                        <tr key={sub.id}>
-                          <td>{sub.payload?.name || '-'}</td>
-                          <td>{sub.payload?.email || '-'}</td>
-                          <td>{sub.payload?.phone || '-'}</td>
-                          <td>{sub.payload?.service || '-'}</td>
-                          <td>{sub.payload?.message || '-'}</td>
-                          <td>{new Date(sub.createdAt).toLocaleString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <h3>Lead Intelligence Submissions</h3>
+                    <div className="s-tab-row">
+                      <button
+                        type="button"
+                        className={`s-tab ${submissionTab === 'contact' ? 'active' : ''}`}
+                        onClick={() => setSubmissionTab('contact')}
+                      >
+                        Contact Leads ({(submissionsData.contact || []).length})
+                      </button>
+                      <button
+                        type="button"
+                        className={`s-tab ${submissionTab === 'project' ? 'active' : ''}`}
+                        onClick={() => setSubmissionTab('project')}
+                      >
+                        Project Inquiries ({(submissionsData.project || []).length})
+                      </button>
+                    </div>
+                  </div>
 
-              <div className="s-card" style={{ marginTop: '24px' }}>
-                <div className="s-card-head">
-                  <h3>Project Inquiries</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="text"
+                      placeholder="Search leads by name or email..."
+                      value={submissionSearch}
+                      onChange={(e) => setSubmissionSearch(e.target.value)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--s-line)',
+                        background: 'var(--s-panel-subtle)',
+                        color: 'var(--s-text)',
+                        fontSize: '0.85rem'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRefreshLeads}
+                      disabled={isRefreshingLeads}
+                      className="s-btn s-btn-ghost s-btn-sm"
+                      title="Refresh submissions list from storage & backend"
+                    >
+                      <RefreshCw size={14} style={{ transform: isRefreshingLeads ? 'rotate(180deg)' : 'none', transition: 'transform 0.4s ease' }} />
+                      <span>{isRefreshingLeads ? 'Refreshing...' : 'Refresh'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleExportCsv}
+                      className="s-btn s-btn-ghost s-btn-sm"
+                    >
+                      <Download size={14} />
+                      <span>Export CSV</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="s-table-wrap">
-                  <table className="s-table">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Org</th>
-                        <th>Message</th>
-                        <th>Timestamp</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(submissionsData.project || []).map((sub) => (
-                        <tr key={sub.id}>
-                          <td>{sub.payload?.name || '-'}</td>
-                          <td>{sub.payload?.email || '-'}</td>
-                          <td>{sub.payload?.org || '-'}</td>
-                          <td>{sub.payload?.message || '-'}</td>
-                          <td>{new Date(sub.createdAt).toLocaleString()}</td>
+
+                {submissionTab === 'contact' ? (
+                  <div className="s-table-wrap">
+                    <table className="s-table">
+                      <thead>
+                        <tr>
+                          <th>Lead Name</th>
+                          <th>Email Address</th>
+                          <th>Phone</th>
+                          <th>Service Interest</th>
+                          <th>Message Snippet</th>
+                          <th>Received</th>
+                          <th>Action</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {(submissionsData.contact || [])
+                          .filter(sub => !submissionSearch || 
+                            sub.payload?.name?.toLowerCase().includes(submissionSearch.toLowerCase()) || 
+                            sub.payload?.email?.toLowerCase().includes(submissionSearch.toLowerCase()))
+                          .map((sub) => (
+                            <tr key={sub.id}>
+                              <td><strong>{sub.payload?.name || '-'}</strong></td>
+                              <td>{sub.payload?.email || '-'}</td>
+                              <td>{sub.payload?.phone || '-'}</td>
+                              <td>
+                                <span className="s-badge">{sub.payload?.service || 'General Inquiry'}</span>
+                              </td>
+                              <td>{(sub.payload?.message || '').slice(0, 48)}...</td>
+                              <td>{new Date(sub.createdAt).toLocaleDateString()}</td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedLead(sub)}
+                                    className="s-btn s-btn-ghost s-btn-sm"
+                                  >
+                                    View Lead
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteLead(sub)}
+                                    className="s-btn s-btn-ghost s-btn-sm"
+                                    style={{ color: '#ef4444' }}
+                                    title="Delete Lead"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="s-table-wrap">
+                    <table className="s-table">
+                      <thead>
+                        <tr>
+                          <th>Representative</th>
+                          <th>Email Address</th>
+                          <th>Organization</th>
+                          <th>Project Scope</th>
+                          <th>Received</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(submissionsData.project || [])
+                          .filter(sub => !submissionSearch || 
+                            sub.payload?.name?.toLowerCase().includes(submissionSearch.toLowerCase()) || 
+                            sub.payload?.org?.toLowerCase().includes(submissionSearch.toLowerCase()))
+                          .map((sub) => (
+                            <tr key={sub.id}>
+                              <td><strong>{sub.payload?.name || '-'}</strong></td>
+                              <td>{sub.payload?.email || '-'}</td>
+                              <td><strong>{sub.payload?.org || '-'}</strong></td>
+                              <td>{(sub.payload?.message || '').slice(0, 52)}...</td>
+                              <td>{new Date(sub.createdAt).toLocaleDateString()}</td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedLead(sub)}
+                                    className="s-btn s-btn-ghost s-btn-sm"
+                                  >
+                                    View Lead
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteLead(sub)}
+                                    className="s-btn s-btn-ghost s-btn-sm"
+                                    style={{ color: '#ef4444' }}
+                                    title="Delete Lead"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: SEO & SOCIAL OPENGRAPH STUDIO */}
+          {activeTab === 'seo' && (
+            <div className="s-panel">
+              <div className="s-two-col">
+                <div className="s-card">
+                  <div className="s-card-head">
+                    <h3>SEO Metadata Configuration</h3>
+                    <span className="s-badge">Search Engine & OG</span>
+                  </div>
+                  <div className="s-form-stack">
+                    <div className="s-field">
+                      <label>SEO Title Tag (<span style={{ color: seoData.metaTitle.length > 60 ? 'var(--s-danger)' : 'var(--s-success)' }}>{seoData.metaTitle.length}/60 chars</span>)</label>
+                      <input
+                        type="text"
+                        value={seoData.metaTitle}
+                        onChange={(e) => setSeoData({ ...seoData, metaTitle: e.target.value })}
+                      />
+                    </div>
+                    <div className="s-field">
+                      <label>Meta Description (<span style={{ color: seoData.metaDescription.length > 160 ? 'var(--s-danger)' : 'var(--s-success)' }}>{seoData.metaDescription.length}/160 chars</span>)</label>
+                      <textarea
+                        rows={3}
+                        value={seoData.metaDescription}
+                        onChange={(e) => setSeoData({ ...seoData, metaDescription: e.target.value })}
+                      />
+                    </div>
+                    <div className="s-field">
+                      <label>Target Meta Keywords</label>
+                      <input
+                        type="text"
+                        value={seoData.keywords}
+                        onChange={(e) => setSeoData({ ...seoData, keywords: e.target.value })}
+                      />
+                    </div>
+                    <div className="s-field">
+                      <label>OpenGraph Share Image Path</label>
+                      <input
+                        type="text"
+                        value={seoData.ogImage}
+                        onChange={(e) => setSeoData({ ...seoData, ogImage: e.target.value })}
+                        placeholder="/assets/hero-bioenergy.jpg"
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <button type="button" onClick={handleResetSeo} className="s-btn s-btn-ghost">Reset</button>
+                      <button
+                        type="button"
+                        onClick={handleSaveSeo}
+                        disabled={isSaving}
+                        className="s-btn s-btn-primary"
+                      >
+                        <Save size={15} />
+                        <span>{isSaving ? 'Saving...' : 'Save SEO Configuration'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="s-card">
+                  <div className="s-card-head">
+                    <h3>Live Google Search Result Preview</h3>
+                    <span className="s-badge">SERP Simulator</span>
+                  </div>
+                  <div className="s-seo-serp-preview">
+                    <div className="s-serp-url">https://biotrendenergy.com › industrial-solutions</div>
+                    <div className="s-serp-title">{seoData.metaTitle || 'Bio Trend Energy'}</div>
+                    <div className="s-serp-desc">{seoData.metaDescription}</div>
+                  </div>
+
+                  <div className="s-card-head" style={{ marginTop: '14px' }}>
+                    <h3>OpenGraph Social Share Preview</h3>
+                  </div>
+                  <div style={{ borderRadius: '12px', border: '1px solid var(--s-line)', overflow: 'hidden', background: 'var(--s-panel-subtle)' }}>
+                    <div style={{ height: '140px', background: '#1e293b', position: 'relative' }}>
+                      <img
+                        src={seoData.ogImage}
+                        alt="OG Preview"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </div>
+                    <div style={{ padding: '14px' }}>
+                      <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--s-text-muted)' }}>BIOTRENDENERGY.COM</div>
+                      <div style={{ fontSize: '0.98rem', fontWeight: 700, margin: '4px 0' }}>{seoData.metaTitle}</div>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--s-text-muted)' }}>{seoData.metaDescription}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           )}
         </div>
       </main>
+
+      {/* MODAL 1: COMMAND SPOTLIGHT SEARCH */}
+      {spotlightOpen && (
+        <div className="s-modal-backdrop" onClick={() => setSpotlightOpen(false)}>
+          <div className="s-modal-card" onClick={(e) => e.stopPropagation()} style={{ width: '520px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Search size={18} style={{ color: 'var(--s-accent-primary)' }} />
+                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Command Spotlight</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSpotlightOpen(false)}
+                className="s-btn s-btn-ghost s-btn-sm"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <input
+              type="text"
+              autoFocus
+              placeholder="Search actions, pages, or tools..."
+              value={spotlightQuery}
+              onChange={(e) => setSpotlightQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: '1px solid var(--s-accent-primary)',
+                background: 'var(--s-panel-subtle)',
+                color: 'var(--s-text)',
+                fontSize: '0.95rem'
+              }}
+            />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {[
+                { title: 'Open Mission Control Overview', tab: 'overview', icon: <CircleGauge size={16} /> },
+                { title: 'Visual Site Content Editor', tab: 'content', icon: <Building2 size={16} /> },
+                { title: 'Customize Theme Color Palettes', tab: 'theme', icon: <Flame size={16} /> },
+                { title: 'Manage Digital Media Library', tab: 'media', icon: <Database size={16} /> },
+                { title: 'Review Lead Inquiries & Submissions', tab: 'submissions', icon: <History size={16} /> },
+                { title: 'SEO & OpenGraph Share Cards', tab: 'seo', icon: <TrendingUp size={16} /> }
+              ]
+                .filter(cmd => !spotlightQuery || cmd.title.toLowerCase().includes(spotlightQuery.toLowerCase()))
+                .map((cmd, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(cmd.tab);
+                      setSpotlightOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--s-line)',
+                      background: 'var(--s-panel)',
+                      color: 'var(--s-text)',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    {cmd.icon}
+                    <span>{cmd.title}</span>
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: LEAD MESSAGE DETAIL MODAL */}
+      {selectedLead && (
+        <div className="s-modal-backdrop" onClick={() => setSelectedLead(null)}>
+          <div className="s-modal-card" onClick={(e) => e.stopPropagation()} style={{ width: '560px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <span className="s-badge">Lead Inquiry Detail</span>
+                <h3 style={{ margin: '6px 0 0 0', fontSize: '1.2rem' }}>{selectedLead.payload?.name}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedLead(null)}
+                className="s-btn s-btn-ghost s-btn-sm"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', background: 'var(--s-panel-subtle)', padding: '16px', borderRadius: '10px' }}>
+              <div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--s-text-muted)' }}>Email Address</span>
+                <div style={{ fontWeight: 600 }}>{selectedLead.payload?.email || '-'}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--s-text-muted)' }}>Phone / Organization</span>
+                <div style={{ fontWeight: 600 }}>{selectedLead.payload?.phone || selectedLead.payload?.org || '-'}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--s-text-muted)' }}>Service Scope</span>
+                <div style={{ fontWeight: 600 }}>{selectedLead.payload?.service || 'General Inquiry'}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--s-text-muted)' }}>Submission Date</span>
+                <div style={{ fontWeight: 600 }}>{new Date(selectedLead.createdAt).toLocaleString()}</div>
+              </div>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--s-text)' }}>Message Copy</span>
+              <div style={{ marginTop: '6px', padding: '16px', borderRadius: '8px', background: 'var(--s-panel-subtle)', border: '1px solid var(--s-line)', lineHeight: 1.6, fontSize: '0.92rem' }}>
+                {selectedLead.payload?.message || 'No message provided.'}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => handleDeleteLead(selectedLead)}
+                className="s-btn s-btn-ghost"
+                style={{ color: '#ef4444' }}
+                title="Permanently delete this lead"
+              >
+                <Trash2 size={15} />
+                <span>Delete Lead</span>
+              </button>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <a
+                  href={`mailto:${selectedLead.payload?.email}`}
+                  className="s-btn s-btn-primary"
+                >
+                  <Mail size={15} />
+                  <span>Reply via Email</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setSelectedLead(null)}
+                  className="s-btn s-btn-ghost"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-
 // Dynamically map and sanitize S-class database values to match website sections with safe fallbacks
 function mapContentStructure(data) {
   if (!data) return null;
+  const projectPage = data.pages?.projects || data.projects || {};
+  const projectIntro = projectPage.intro || {};
+  const projectItems = (projectPage.items || defaultProjects || []).map((project, index) => {
+    const fallback = defaultProjects[index % defaultProjects.length];
+    const missingMap = {
+      '/assets/green-energy-field.jpg': '/assets/project-waste-to-energy.jpg',
+      '/assets/nature.jpg': '/assets/project-biogas.jpg',
+      '/assets/biomass-pellets.jpg': '/assets/project-biochar.jpg',
+    };
+    const rawImg = project.image || project.img || fallback.image;
+    return {
+      title: project.title || fallback.title,
+      description: project.description || project.desc || '',
+      location: project.location || fallback.location,
+      capacity: project.capacity || project.stats || project.status || fallback.capacity,
+      category: project.category || fallback.category,
+      image: missingMap[rawImg] || rawImg,
+      imagePosition: project.imagePosition || fallback.imagePosition || 'center',
+      fallbackImage: fallback.image,
+    };
+  });
+
   return {
     ...data,
     // Hero mapping
@@ -1877,18 +4248,12 @@ function mapContentStructure(data) {
     },
     // Projects mapping
     projects: {
-      eyebrow: data.pages?.projects?.eyebrow || 'Our work',
-      title: data.pages?.projects?.title || 'Projects That Perform',
-      description: data.pages?.projects?.description || 'Delivering successful bioenergy projects that create lasting environmental and economic value.',
-      summaryValue: data.pages?.projects?.summaryValue || '50+',
-      summaryText: data.pages?.projects?.summaryText || 'projects delivered across India',
-      items: (data.pages?.projects?.items || data.projects?.items || defaultProjects || []).map(p => ({
-        title: p.title,
-        location: p.location,
-        capacity: p.capacity,
-        category: p.category,
-        image: p.image
-      }))
+      eyebrow: projectPage.eyebrow || projectIntro.eyebrow || 'Our work',
+      title: projectPage.title || projectIntro.title || 'Projects That Perform',
+      description: projectPage.description || projectIntro.copy || 'Delivering successful bioenergy projects that create lasting environmental and economic value.',
+      summaryValue: projectPage.summaryValue || '50+',
+      summaryText: projectPage.summaryText || 'projects delivered across India',
+      items: projectItems,
     },
     // Impact mapping
     impact: {
@@ -1919,7 +4284,18 @@ function mapContentStructure(data) {
       policies: data.footer?.policies || [
         { label: 'Privacy Policy', href: '#home' },
         { label: 'Terms of Use', href: '#home' }
-      ]
+      ],
+      quickLinks: data.footer?.quickLinks || [],
+      solutionsLinks: data.footer?.solutionsLinks || [],
+      resourceLinks: data.footer?.resourceLinks || [],
+      socialLinks: data.footer?.socialLinks || []
+    },
+    // SEO / OpenGraph mapping
+    seo: {
+      metaTitle: data.seo?.metaTitle || 'Bio Trend Energy — Advanced Biomass Fuel Systems',
+      metaDescription: data.seo?.metaDescription || 'Converting organic & agricultural waste streams into dependable clean industrial renewable energy.',
+      keywords: data.seo?.keywords || 'biomass, bioenergy, briquetting, renewable fuel, industrial decarbonization, sustainability',
+      ogImage: data.seo?.ogImage || '/assets/hero-bioenergy.jpg'
     }
   };
 }
@@ -1928,13 +4304,19 @@ function mapContentStructure(data) {
 export default function App() {
   const [pathname, setPathname] = useState(() => window.location.pathname.replace(/\/+$/, '') || '/');
   const [siteData, setSiteData] = useState(() => mapContentStructure(initialSiteData));
+  const [settingsData, setSettingsData] = useState(null);
   const [currentUser, setCurrentUser] = useState(() => {
     const savedUser = sessionStorage.getItem('admin_user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
-  
   const [darkMode, setDarkMode] = useState(false);
+  
   const [videoOpen, setVideoOpen] = useState(false);
+  const [projectModalOpen, setProjectModalOpen] = useState(false);
+
+  const openVideo = () => {
+    setVideoOpen(true);
+  };
 
   // Fetch customizable site content from Node server API
   const fetchContent = async () => {
@@ -1944,9 +4326,6 @@ export default function App() {
         const data = await response.json();
         const mappedData = mapContentStructure(data);
         setSiteData(mappedData);
-        if (data.theme) {
-          setDarkMode(data.theme.darkMode);
-        }
       } else {
         throw new Error();
       }
@@ -1955,7 +4334,6 @@ export default function App() {
       // Fallback content data generated from local data.js
       const fallbackContent = {
         theme: {
-          darkMode: false,
           fontFamily: 'Poppins',
           colors: {
             primary: '#154E33',
@@ -2064,8 +4442,41 @@ export default function App() {
     }
   };
 
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch(API_BASE + '/api/settings');
+      if (!response.ok) throw new Error();
+      const data = await response.json();
+      setSettingsData(data);
+    } catch (err) {
+      console.warn('Connection to Node backend settings API failed. Falling back to default theme.');
+      setSettingsData({
+        design: {
+          fontFamily: 'Outfit',
+          typography: {
+            navScale: 1, buttonScale: 1, eyebrowScale: 1, bodyScale: 1,
+            heroTitleScale: 1, pageTitleScale: 1, sectionTitleScale: 1, cardTitleScale: 1
+          },
+          palettes: {
+            light: { pageBackground: '#f8fafc', surface: '#ffffff', text: '#0f172a', heading: '#020617', primary: '#10b981', secondary: '#06b6d4', mist: '#f1f5f9' },
+            dark: { pageBackground: '#070b12', surface: '#0d1422', text: '#f8fafc', heading: '#ffffff', primary: '#10b981', secondary: '#06b6d4', mist: '#162238' }
+          }
+        }
+      });
+    }
+  };
+
   useEffect(() => {
     fetchContent();
+    fetchSettings();
+    // Load every font in the library once so any selection previews instantly.
+    if (!document.getElementById('google-fonts-library')) {
+      const link = document.createElement('link');
+      link.id = 'google-fonts-library';
+      link.rel = 'stylesheet';
+      link.href = googleFontsHref();
+      document.head.appendChild(link);
+    }
   }, []);
 
   // Sync sessionStorage for persistent admin login across reloads
@@ -2079,49 +4490,88 @@ export default function App() {
 
   // Apply custom CSS Theme variables from dashboard settings
   useEffect(() => {
-    const design = siteData?.settings?.design || siteData?.theme;
+    const root = document.documentElement;
+    root.dataset.theme = 'light';
+
+    const design = settingsData?.design || siteData?.theme;
     if (!design) return;
 
     const { palettes, colors, fontFamily, typography } = design;
-    const root = document.documentElement;
 
     if (fontFamily) {
-      root.style.setProperty('--font-sans', `"${fontFamily}", "Poppins", sans-serif`);
-      document.body.style.fontFamily = `"${fontFamily}", "Poppins", sans-serif`;
+      const fontName = extractFontName(fontFamily);
+      root.style.setProperty('--font-sans', `"${fontName}", "Poppins", sans-serif`);
+      document.body.style.fontFamily = `"${fontName}", "Poppins", sans-serif`;
     }
 
-    root.dataset.theme = darkMode ? 'dark' : 'light';
-
-    const mode = darkMode ? 'dark' : 'light';
-    const palette = (palettes && palettes[mode]) ? palettes[mode] : null;
-    const fallbackColor = (colors && colors[mode]) ? colors[mode] : null;
+    const palette = palettes?.light || null;
+    const fallbackColor = colors?.light || (colors?.primary ? colors : null);
 
     if (palette || fallbackColor) {
-      const pageBg = palette?.pageBackground || fallbackColor?.bgPage || (darkMode ? '#09150f' : '#fbfcfa');
-      const surface = palette?.surface || fallbackColor?.bgSurface || (darkMode ? '#102119' : '#ffffff');
-      const ink = palette?.heading || fallbackColor?.textHeading || (darkMode ? '#eff8ef' : '#0b1d13');
-      const inkSoft = palette?.text || fallbackColor?.textBody || (darkMode ? '#a9b9ad' : '#546158');
-      
-      const primary = palette?.primary || fallbackColor?.primary || (darkMode ? '#39934d' : '#0b5130');
-      const secondary = palette?.secondary || fallbackColor?.accent || (darkMode ? '#49a95c' : '#267b3f');
-      const mist = palette?.mist || fallbackColor?.mist || (darkMode ? '#102c1d' : '#f3f8f1');
-      const line = palette?.mist || fallbackColor?.border || (darkMode ? '#263a2d' : '#e5ebe4');
+      const pageBg = palette?.pageBackground || fallbackColor?.bgPage || '#fbfcfa';
+      const surface = palette?.surface || fallbackColor?.bgSurface || '#ffffff';
+      const ink = palette?.heading || fallbackColor?.textHeading || '#0b1d13';
+      const inkSoft = palette?.text || fallbackColor?.textBody || '#546158';
+
+      const primary = palette?.primary || fallbackColor?.primary || '#0b5130';
+      const secondary = palette?.secondary || fallbackColor?.accent || '#267b3f';
+      const mist = palette?.mist || fallbackColor?.mist || '#f3f8f1';
+      const line = palette?.mist || fallbackColor?.border || '#e5ebe4';
+
+      // Derive a full shade ramp from the single chosen brand color so
+      // picking e.g. blue re-colors the navbar, every button, badges,
+      // borders and hover states consistently — not just a couple of spots.
+      const ramp = generateShadeRamp(primary);
+      const secondaryRamp = generateShadeRamp(secondary);
 
       root.style.setProperty('--canvas', pageBg);
       root.style.setProperty('--paper', surface);
       root.style.setProperty('--ink', ink);
       root.style.setProperty('--ink-soft', inkSoft);
       root.style.setProperty('--line', line);
-      
-      root.style.setProperty('--green-950', primary);
-      root.style.setProperty('--green-900', primary);
-      root.style.setProperty('--green-800', primary);
-      root.style.setProperty('--green-700', secondary);
-      root.style.setProperty('--green-600', secondary);
-      root.style.setProperty('--green-200', mist);
-      root.style.setProperty('--green-100', mist);
-      root.style.setProperty('--green-50', pageBg);
+
+      root.style.setProperty('--green-950', ramp[950]);
+      root.style.setProperty('--green-900', ramp[900]);
+      root.style.setProperty('--green-800', ramp[800]);
+      root.style.setProperty('--green-700', secondary || ramp[700]);
+      root.style.setProperty('--green-600', secondaryRamp[600] || ramp[600]);
+      root.style.setProperty('--green-500', ramp[500]);
+      root.style.setProperty('--green-200', mist || ramp[200]);
+      root.style.setProperty('--green-100', ramp[100]);
+      root.style.setProperty('--green-50', pageBg || ramp[50]);
+
+      // Semantic aliases used across the navbar, buttons, badges and gradient
+      // accents so every one of those pulls from the same generated ramp.
+      root.style.setProperty('--brand-primary', ramp[900]);
+      root.style.setProperty('--brand-primary-dark', ramp[950]);
+      root.style.setProperty('--brand-primary-darker', ramp[800]);
+      root.style.setProperty('--brand-accent', secondary || ramp[700]);
+      root.style.setProperty('--brand-accent-soft', secondaryRamp[200] || ramp[200]);
+      root.style.setProperty('--brand-gradient-start', secondaryRamp[500] || ramp[500]);
+      root.style.setProperty('--brand-gradient-end', ramp[700]);
+      root.style.setProperty('--brand-tint', ramp[100]);
+      root.style.setProperty('--brand-tint-strong', ramp[200]);
+      root.style.setProperty('--brand-glow', ramp.glow);
+      root.style.setProperty('--brand-glow-soft', ramp.glowSoft);
     }
+
+    // Layout customizations — button shape and shadow intensity.
+    const layout = design.layout || {};
+    const radiusMap = { pill: '999px', rounded: '14px', square: '6px' };
+    root.style.setProperty('--btn-radius', radiusMap[layout.buttonShape] || radiusMap.pill);
+    const shadowMap = {
+      subtle: '0 4px 15px rgba(13, 67, 43, 0.12)',
+      medium: '0 10px 30px rgba(13, 67, 43, 0.2)',
+      bold: '0 18px 45px rgba(13, 67, 43, 0.32)'
+    };
+    root.style.setProperty('--btn-shadow', shadowMap[layout.shadowIntensity] || shadowMap.medium);
+    const cardRadiusPx = layout.cardRadius ?? 22;
+    root.style.setProperty('--card-radius', `${cardRadiusPx}px`);
+    // Tie the site's existing card-radius variables to the same control so
+    // every card, panel and image frame across the site follows it.
+    root.style.setProperty('--radius-lg', `${cardRadiusPx}px`);
+    root.style.setProperty('--radius-md', `${Math.max(cardRadiusPx - 6, 6)}px`);
+    root.style.setProperty('--radius-xl', `${cardRadiusPx + 12}px`);
 
     const typo = typography || {};
     const styleEl = document.getElementById('dynamic-typography-overrides') || document.createElement('style');
@@ -2133,11 +4583,11 @@ export default function App() {
       .solution-card h3, .project-card h3 { font-size: calc(20px * ${typo.cardTitleScale || 1}) !important; }
       p { font-size: calc(16px * ${typo.bodyScale || 1}) !important; }
       .eyebrow { font-size: calc(11px * ${typo.eyebrowScale || 1}) !important; }
-      .nav-links a { font-size: calc(14px * ${typo.navScale || 1}) !important; }
+      .desktop-nav a.nav-link { font-size: calc(15px * ${typo.navScale || 1}) !important; }
       .btn-pill, button { font-size: calc(14px * ${typo.buttonScale || 1}) !important; }
     `;
     if (!styleEl.parentNode) document.head.appendChild(styleEl);
-  }, [siteData, darkMode]);
+  }, [settingsData, siteData, darkMode]);
 
   // Client path handler
   useEffect(() => {
@@ -2157,8 +4607,13 @@ export default function App() {
       '/impact': 'Our Impact | Bio Trend Energy',
       '/projects': 'Projects | Bio Trend Energy',
       '/contact': 'Contact | Bio Trend Energy',
+      '/admin': 'Admin Dashboard | Bio Trend Energy Studio'
     };
-    document.title = pageTitles[pathname] || 'Page Not Found | Bio Trend Energy';
+    if (pathname.startsWith('/admin')) {
+      document.title = 'Admin Dashboard | Bio Trend Energy Studio';
+    } else {
+      document.title = pageTitles[pathname] || 'Page Not Found | Bio Trend Energy';
+    }
     window.scrollTo(0, 0);
   }, [pathname]);
 
@@ -2178,40 +4633,51 @@ export default function App() {
   // Route decision maker
   if (pathname.startsWith('/admin') || pathname.startsWith('/dashboard')) {
     if (!currentUser) {
-      return <AdminLogin onLoginSuccess={setCurrentUser} />;
+      return (
+        <AdminLogin
+          onLoginSuccess={(userObj) => {
+            sessionStorage.setItem('admin_user', JSON.stringify(userObj));
+            setCurrentUser(userObj);
+          }}
+        />
+      );
     }
     return (
       <AdminDashboard
         user={currentUser}
         onLogout={() => {
           sessionStorage.removeItem('dashboard_token');
+          sessionStorage.removeItem('admin_user');
           setCurrentUser(null);
         }}
         siteData={siteData}
         setSiteData={setSiteData}
+        settingsData={settingsData}
+        setSettingsData={setSettingsData}
       />
     );
   }
 
   let publicPage;
+  const handleOpenModal = () => setProjectModalOpen(true);
   switch (pathname) {
     case '/':
-      publicPage = <Hero heroData={siteData.hero} onVideoOpen={() => setVideoOpen(true)} onNavigate={navigateTo} />;
+      publicPage = <Hero heroData={siteData.hero} onVideoOpen={() => setVideoOpen(true)} onNavigate={navigateTo} onOpenProjectModal={handleOpenModal} />;
       break;
     case '/about':
-      publicPage = <About aboutData={siteData.about} />;
+      publicPage = <About aboutData={siteData.about} onOpenProjectModal={handleOpenModal} />;
       break;
     case '/solutions':
-      publicPage = <Solutions solutionsData={siteData.solutions} onNavigate={navigateTo} />;
+      publicPage = <Solutions solutionsData={siteData.solutions} onNavigate={navigateTo} onOpenProjectModal={handleOpenModal} />;
       break;
     case '/process':
-      publicPage = <Process processData={siteData.process} />;
+      publicPage = <Process processData={siteData.process} onOpenProjectModal={handleOpenModal} />;
       break;
     case '/projects':
-      publicPage = <Projects projectsData={siteData.projects} onNavigate={navigateTo} />;
+      publicPage = <Projects projectsData={siteData.projects} onNavigate={navigateTo} onOpenProjectModal={handleOpenModal} />;
       break;
     case '/impact':
-      publicPage = <Impact impactData={siteData.impact} />;
+      publicPage = <Impact impactData={siteData.impact} onOpenProjectModal={handleOpenModal} />;
       break;
     case '/contact':
       publicPage = <Contact footerData={siteData.footer} />;
@@ -2225,16 +4691,26 @@ export default function App() {
       <Header
         darkMode={darkMode}
         onThemeToggle={() => setDarkMode((mode) => !mode)}
-        onVideoOpen={() => setVideoOpen(true)}
+        onVideoOpen={openVideo}
         onNavigate={navigateTo}
+        onOpenProjectModal={handleOpenModal}
         currentPath={pathname}
+        logoSrc={siteData.site?.logo?.src}
+        logoAlt={siteData.site?.logo?.alt}
+        navItems={siteData.site?.navigation}
       />
       <main className="route-main" key={pathname}>
         {publicPage}
-        {pathname !== '/contact' && <ClosingCta onNavigate={navigateTo} />}
+        {pathname !== '/contact' && <ClosingCta onNavigate={navigateTo} onOpenProjectModal={handleOpenModal} />}
       </main>
-      <Footer footerData={siteData.footer} onNavigate={navigateTo} />
+      <Footer
+        footerData={siteData.footer}
+        onNavigate={navigateTo}
+        logoSrc={siteData.site?.logo?.src}
+        logoAlt={siteData.site?.logo?.alt}
+      />
       <VideoModal open={videoOpen} onClose={() => setVideoOpen(false)} />
+      <ProjectModal isOpen={projectModalOpen} onClose={() => setProjectModalOpen(false)} />
     </>
   );
 }

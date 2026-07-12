@@ -87,13 +87,13 @@ for (const check of checks) {
   console.log(JSON.stringify({
     viewport: check.name,
     routes: routeResults,
-    interactions: {
-      filteredProjects,
-      videoSource,
-      darkTheme,
-      mobileNavigation,
-      navigationPath: new URL(page.url()).pathname,
-    },
+      interactions: {
+        filteredProjects,
+        videoSource,
+        darkTheme,
+        mobileNavigation,
+        navigationPath: new URL(page.url()).pathname,
+      },
   }));
   await page.close();
 }
